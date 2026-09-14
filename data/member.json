@@ -1,0 +1,5 @@
+[
+  {"id":"M001","nama":"Siti Aminah","hp":"081234567890","poin":120,"diskon":5,"level":"Silver"},
+  {"id":"M002","nama":"Budi Santoso","hp":"082112345678","poin":350,"diskon":10,"level":"Gold"},
+  {"id":"M003","nama":"Rina Wati","hp":"085678901234","poin":45,"diskon":3,"level":"Bronze"}
+]

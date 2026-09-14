@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>POS Herbal Profesional - Toko Jamu & Herbal</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/feather-icons/dist/feather.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f6f7f9">
+<style>:root{--cbm-bg:#f6f7f9;--cbm-soft:#ffffff;--cbm-card:#ffffff;--cbm-border:#e6e8eb;--cbm-accent:#16a34a;--cbm-accent-soft:#dcfce7;--cbm-accent-line:#bbf7d0;--cbm-accent2:#14b8a6;--cbm-text:#2d3748;--cbm-muted:#718096} *{font-family:'Inter',system-ui,sans-serif} body{background:var(--cbm-bg);color:var(--cbm-text)} button{transition:all .15s} .nav-active{ background:var(--cbm-accent-soft);color:var(--cbm-accent);font-weight:600;border:1px solid var(--cbm-accent-line) } .nav-btn{font-weight:400; color:var(--cbm-muted)} .nav-btn:hover{background:#f1f5f9;color:var(--cbm-text)} ::-webkit-scrollbar{width:6px;height:6px}::webkit-scrollbar-thumb{background:#e2e8f0;border-radius:999px} [data-feather]{width:16px;height:16px; stroke-width:1.4; color:#a0aec0} .nav-active [data-feather]{color:var(--cbm-accent)} .cbm-card{background:var(--cbm-card);border:1px solid var(--cbm-border);border-radius:12px; box-shadow:0 1px 2px rgba(0,0,0,.04)} .cbm-input{background:#fff;border:1px solid var(--cbm-border);color:var(--cbm-text)} .cbm-input:focus{border-color:var(--cbm-accent);outline:none; box-shadow:0 0 0 3px var(--cbm-accent-soft)} .text-cbm-muted{color:var(--cbm-muted)}</style>
+</head>
+<body class="bg-[#f6f7f9] text-[#2d3748]">
+<div class="flex min-h-screen">
+<aside class="w-[260px] bg-white border-r border-[#e6e8eb] text-slate-300 flex flex-col hidden md:flex">
+  <div class="p-5 border-b border-[#e6e8eb]">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 bg-gradient-to-br from-[var(--cbm-accent)] to-[var(--cbm-accent2)] rounded-xl flex items-center justify-center text-[var(--cbm-accent)]"><i data-feather="feather"></i></div>
+      <div><h1 class="font-semibold leading-none tracking-tight text-[#2d3748] text-[15px]">HERBAL POS</h1><p class="text-[11px] text-[#718096] tracking-wide">MINIMAL • SKU • FEFO</p></div>
+    </div>
+  </div>
+  <nav class="p-3 space-y-0.5 text-[13px]">
+    <button data-page="kasir" class="nav-btn nav-active w-full flex items-center gap-3 px-3 py-2 rounded-lg"><i class="fa-solid fa-cart-shopping" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Kasir <span class="ml-auto text-[11px] text-[#718096]">F1</span></button>
+    <button data-page="produk" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-cube" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Produk</button>
+    <button data-page="member" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-users" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Member</button>
+    <button data-page="supplier" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-truck" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Supplier</button>
+    <button data-page="pembelian" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-bag-shopping" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Pembelian</button>
+    <button data-page="stok" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-triangle-exclamation" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Stok</button>
+    <button data-page="opname" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-regular fa-clipboard" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Opname</button>
+    <button data-page="promo" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-tag" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Promo</button>
+    <button data-page="laporan" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-chart-simple" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Laporan</button>
+    <button data-page="users" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-user-shield" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Akun &amp; User</button>
+    <button data-page="outlet" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-store" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Outlet</button>
+    <button data-page="shift" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-clock" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Shift</button>
+    <button data-page="setting" class="nav-btn w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-[#f1f5f9] text-[#718096]"><i class="fa-solid fa-gear" style="font-size:13px;width:16px;text-align:center;color:#999"></i> Setting</button>
+    <div class="pt-3 mt-1 border-t border-[#e6e8eb] text-xs space-y-2">
+    <div class="bg-white border border-[#e6e8eb] rounded-lg p-2.5 space-y-1">
+      <div class="flex items-center gap-2 text-[11px] text-[#718096]"><i data-feather="home" class="w-3 h-3"></i> Toko Aktif <span id="tokoCount" class="ml-auto text-[10px] bg-[var(--cbm-accent-soft)] text-[var(--cbm-accent)] px-1.5 py-0.5 rounded-full">0 Toko</span></div>
+      <div id="lockedOutlet" class="font-semibold text-[#2d3748] text-xs truncate">Aliya Herba</div>
+      <div id="lockedUser" class="text-xs text-[var(--cbm-accent)] font-medium"></div>
+      <div class="text-[11px] text-[#718096] flex items-center gap-1"><i data-feather="lock" class="w-3 h-3"></i> Kasir terkunci 1 toko • Owner/SPV bisa pindah toko</div>
+    </div>
+    <div id="outletSwitch" class="hidden">
+      <div class="text-[11px] font-semibold text-[#718096] mb-1">Pindah Toko</div>
+      <select id="outletSelect" onchange="gantiOutlet(this.value)" class="w-full border border-[#e6e8eb] rounded-lg px-2 py-1.5 text-xs bg-white text-[#2d3748]"></select>
+    </div>
+    <select id="userSelect" onchange="gantiUser(this.value)" class="hidden"></select>
+    <div class="flex items-center gap-2 text-[#718096]"><i data-feather="clock"></i><span id="jam"></span><span id="roleLabel" class="ml-auto bg-white border px-2 py-0.5 rounded-full text-slate-600 text-[11px]"></span></div>
+    <div class="grid grid-cols-2 gap-2">
+      <button onclick="exportData()" class="bg-white border border-[#e6e8eb] py-2 rounded-lg text-slate-600 flex items-center justify-center gap-1.5 text-xs"><i data-feather="download" class="w-3 h-3"></i> Export</button>
+      <button onclick="logout()" class="bg-slate-900 text-white py-2 rounded-lg flex items-center justify-center gap-1.5 text-xs"><i data-feather="log-out" class="w-3 h-3"></i> Keluar</button>
+    </div>
+    </div>
+  </nav>
+</aside>
+
+<main class="flex-1 flex flex-col min-w-0">
+  <div class="md:hidden bg-white border-b border-[#e6e8eb] text-[#718096] p-2 flex gap-1 overflow-x-auto text-xs sticky top-0 z-10">
+    <button data-page="kasir" class="nav-btn bg-[var(--cbm-accent)] text-white px-3 py-1.5 rounded-full flex items-center gap-1"><i data-feather="shopping-cart" class="w-3 h-3"></i> Kasir</button>
+    <button data-page="produk" class="nav-btn bg-[#334155]/50 px-3 py-1.5 rounded-full">Produk</button>
+    <button data-page="member" class="nav-btn bg-[#334155]/50 px-3 py-1.5 rounded-full">Member</button>
+    <button data-page="setting" class="nav-btn bg-[#334155]/50 px-3 py-1.5 rounded-full flex items-center gap-1"><i data-feather="printer" class="w-3 h-3"></i> Printer</button>
+  </div>
+
+  <section id="page-kasir" class="page flex-1 flex flex-col lg:flex-row">
+    <div class="flex-1 p-3 lg:p-4">
+      <div class="cbm-card p-3 rounded-2xl mb-3 space-y-2">
+        <div class="flex gap-2">
+          <div class="flex-1 relative"><i data-feather="search" class="w-4 h-4 absolute left-3 top-3 text-[#718096]"></i><input id="cari" placeholder="Scan barcode / ketik nama / SKU..." class="w-full pl-9 pr-4 py-2.5 rounded-xl border bg-white outline-none focus:ring-2 focus:ring-[var(--cbm-accent)]"></div>
+          <button onclick="openScanner()" class="bg-slate-900 text-white px-4 rounded-xl flex items-center gap-2"><i data-feather="camera" class="w-4 h-4"></i> Scan</button>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <select id="filterKat" class="flex-1 min-w-[140px] px-3 py-2 rounded-xl border bg-white border-[#e6e8eb] text-[#2d3748] text-sm"><option value="">Semua Kategori</option><option>Jamu Cair</option><option>Kapsul</option><option>Minyak</option><option>Teh Herbal</option><option>Madu</option><option>Jamu Bubuk</option></select>
+          <label class="flex items-center gap-1.5 border rounded-xl px-3 py-2 text-xs bg-white border-[#e6e8eb] cursor-pointer"><input type="checkbox" id="ppnAktif" onchange="hitung()"> PPN 11%</label>
+          <button onclick="openPrinterModal()" class="px-3 py-2 border rounded-xl text-sm flex items-center gap-1.5"><i data-feather="printer" class="w-4 h-4"></i> Printer</button>
+          <select id="diskonTambahan" class="px-2 py-2 border rounded-xl text-sm"><option value="">Tanpa promo</option></select>
+          <input id="promoKode" placeholder="Kode promo" class="px-2 py-2 border rounded-xl text-sm w-[110px]" oninput="hitung()" title="Misal PROMO5K">
+        </div>
+        <div class="text-xs text-[#718096] flex items-center gap-1.5"><i data-feather="zap" class="w-3 h-3"></i> USB scanner auto • F1 Kasir • F2 Produk • Enter untuk bayar</div>
+      </div>
+      <div id="gridProduk" class="grid grid-cols-2 xl:grid-cols-3 gap-3"></div>
+      <div id="gridInfo" class="text-xs text-center text-[#718096] mt-2"></div>
+    </div>
+    <div class="w-full lg:w-[400px] bg-white border-l border-[#e6e8eb] flex flex-col lg:h-[100vh] lg:sticky lg:top-0">
+      <div class="p-3 border-b space-y-2">
+        <div class="flex items-center gap-2">
+          <select id="notaSelect" onchange="pilihNota(this.value)" class="flex-1 px-2 py-2 rounded-xl border bg-white border border-[#e6e8eb] text-xs font-bold"></select>
+          <button onclick="buatNotaBaru()" class="bg-[var(--cbm-accent)] text-white px-3 py-2 rounded-xl text-xs flex items-center gap-1"><i data-feather="plus" class="w-3 h-3"></i> Nota Baru</button>
+          <button onclick="hapusNota()" class="border px-2 py-2 rounded-xl text-xs"><i data-feather="trash-2" class="w-3 h-3"></i></button>
+        </div>
+        <div class="flex items-center gap-2 text-xs"><span id="notaStatus" class="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Draft</span><span id="notaId" class="font-mono text-[#718096]"></span><span class="ml-auto text-[#718096]" id="notaCount"></span></div>
+        <div class="flex gap-1.5">
+          <button onclick="openBulkModal()" class="flex-1 border px-2 py-1.5 rounded-full text-xs flex items-center justify-center gap-1"><i data-feather="copy" class="w-3 h-3"></i> Multi Input</button>
+          <button data-admin-only onclick="if(!hasPriv('kosongkan')){alert('Kasir tidak bisa kosongkan');}else{cart=[];syncNota();renderCart()}" class="border px-2.5 py-1.5 rounded-full text-xs flex items-center gap-1"><i data-feather="trash-2" class="w-3 h-3"></i> Kosongkan</button>
+        </div>
+        <select id="pilihMember" class="w-full px-3 py-2 rounded-xl border bg-white text-sm"><option value="">Tanpa Member</option></select>
+        <div id="infoMember" class="text-xs text-[var(--cbm-accent)] hidden"></div>
+      </div>
+      <div id="cartList" class="flex-1 overflow-auto p-3 space-y-2"></div>
+      <div class="p-3 border-t bg-white space-y-2 text-sm">
+        <div class="flex justify-between"><span>Subtotal</span><span id="subtotal">Rp 0</span></div>
+        <div class="flex justify-between"><span>Diskon Member <span id="labelDiskon"></span></span><span id="diskonRp">- Rp 0</span></div>
+        <div class="flex justify-between"><span>Promo</span><span id="promoRp">- Rp 0</span></div><div id="promoInfo" class="text-xs text-[var(--cbm-accent)]"></div>
+        <div class="flex justify-between"><span>PPN 11%</span><span id="ppnRp">Rp 0</span></div>
+        <div class="flex justify-between font-bold text-base border-t pt-2"><span>Total</span><span id="total" class="text-[var(--cbm-accent)]">Rp 0</span></div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button onclick="setPay('Tunai')" id="btnTunai" class="pay-btn bg-[var(--cbm-accent)] text-white py-2.5 rounded-xl font-semibold flex items-center justify-center gap-1"><i data-feather="credit-card" class="w-3.5 h-3.5"></i> Tunai</button>
+          <button onclick="setPay('Transfer')" id="btnTransfer" class="pay-btn bg-white border border-[#e6e8eb] text-[#718096] border py-2.5 rounded-xl flex items-center justify-center gap-1"><i data-feather="credit-card" class="w-3.5 h-3.5"></i> Transfer</button>
+          <button onclick="setPay('QRIS')" id="btnQRIS" class="pay-btn bg-white border border-[#e6e8eb] text-[#718096] border py-2.5 rounded-xl">QRIS</button>
+          <button onclick="setPay('Split')" id="btnSplit" class="pay-btn bg-white border border-[#e6e8eb] text-[#718096] border py-2.5 rounded-xl">Split</button>
+        </div>
+        <div id="splitBox" class="hidden grid grid-cols-2 gap-2"><input id="splitTunai" type="number" placeholder="Tunai" class="px-2 py-2 border rounded-xl"><input id="splitTransfer" type="number" placeholder="Transfer/QRIS" class="px-2 py-2 border rounded-xl"></div>
+        <div class="flex gap-2"><input id="bayar" type="number" placeholder="Jumlah bayar" class="flex-1 px-3 py-2.5 rounded-xl border text-base"><button onclick="bayarSekarang()" class="bg-[var(--cbm-accent)] text-white px-6 rounded-xl font-bold flex items-center gap-1.5"><i data-feather="arrow-right" class="w-4 h-4"></i> BAYAR</button></div>
+        <div class="flex justify-between"><span>Kembalian</span><b id="kembalian">Rp 0</b></div>
+        <label class="flex items-center gap-2 text-xs"><input type="checkbox" id="autoPrint" checked> Auto print struk</label>
+        <div id="qrBox" class="hidden text-center p-3 border-2 border-dashed rounded-xl">QRIS<br><span class="text-3xl">▦</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="page-produk" class="page hidden p-4">
+    <div class="flex justify-between items-center mb-3"><h2 class="text-xl font-bold flex items-center gap-2"><i data-feather="package" class="w-5 h-5"></i> Produk & SKU</h2><div class="flex gap-2"><button onclick="cetakLabelMassal()" class="border px-3 py-2 rounded-xl text-sm flex items-center gap-1.5"><i data-feather="tag" class="w-4 h-4"></i> Cetak Label</button><button onclick="openProdukModal()" class="bg-[var(--cbm-accent)] text-white px-4 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="plus" class="w-4 h-4"></i> Produk</button></div></div>
+    <div class="cbm-card rounded-2xl overflow-auto"><table class="w-full text-sm"><thead class="bg-white text-[#718096]"><tr><th class="p-3 text-left">Produk / SKU / Barcode</th><th>Harga</th><th>HPP</th><th>Stok</th><th>EXP/Batch</th><th>BPOM</th><th>Aksi</th></tr></thead><tbody id="tabelProduk"></tbody></table></div>
+  </section>
+
+  <section id="page-member" class="page hidden p-4">
+    <div class="flex justify-between mb-3"><h2 class="text-xl font-bold flex items-center gap-2"><i data-feather="users" class="w-5 h-5"></i> Member & Loyalty</h2><button onclick="openMemberModal()" class="bg-[var(--cbm-accent)] text-white px-4 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="user-plus" class="w-4 h-4"></i> Member</button></div>
+    <div class="cbm-card p-4 rounded-2xl mb-3">
+      <div class="flex justify-between items-center mb-2"><h3 class="font-semibold flex items-center gap-2"><i data-feather="settings" class="w-4 h-4"></i> Pengaturan Level Member</h3><button onclick="tambahMemberLevel()" class="border px-3 py-1.5 rounded-xl text-xs flex items-center gap-1"><i data-feather="plus" class="w-3 h-3"></i> Tambah Level</button></div>
+      <div class="text-xs text-[#718096] mb-2">Ubah nama level & diskon% — berlaku langsung untuk member & hitungan kasir. Contoh: Gold 10% bisa jadi 12%.</div>
+      <div id="memberLevelList" class="space-y-2"></div>
+    </div>
+    <div class="cbm-card rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead class="bg-white"><tr><th class="p-3 text-left">Nama / Referral</th><th>HP</th><th>Level</th><th>Diskon</th><th>Poin</th><th>Aksi</th></tr></thead><tbody id="tabelMember"></tbody></table></div>
+  </section>
+
+  <section id="page-supplier" class="page hidden p-4">
+    <div class="flex justify-between mb-3"><h2 class="text-xl font-bold flex items-center gap-2"><i data-feather="truck" class="w-5 h-5"></i> Supplier</h2><button onclick="openSupplierModal()" class="bg-[var(--cbm-accent)] text-white px-4 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="plus" class="w-4 h-4"></i> Supplier</button></div>
+    <div class="cbm-card rounded-2xl overflow-hidden"><table class="w-full text-sm"><thead class="bg-white"><tr><th class="p-3 text-left">Nama</th><th>Kontak</th><th>Alamat</th><th>Aksi</th></tr></thead><tbody id="tabelSupplier"></tbody></table></div>
+  </section>
+
+  <section id="page-pembelian" class="page hidden p-4">
+    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="shopping-bag" class="w-5 h-5"></i> Pembelian (PSAK14 Moving Average)</h2>
+    <div class="cbm-card p-4 rounded-2xl space-y-3">
+      <div class="grid md:grid-cols-3 gap-2"><select id="beliSupplier" class="px-3 py-2 border rounded-xl"></select><select id="beliProduk" class="px-3 py-2 border rounded-xl"></select><input id="beliQty" type="number" placeholder="Qty" class="px-3 py-2 border rounded-xl"></div>
+      <div class="grid md:grid-cols-3 gap-2"><input id="beliBatch" placeholder="No Batch" class="px-3 py-2 border rounded-xl"><input id="beliExp" type="date" class="px-3 py-2 border rounded-xl"><input id="beliHpp" type="number" placeholder="HPP / modal" class="px-3 py-2 border rounded-xl"></div>
+      <button onclick="tambahPembelian()" class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="plus" class="w-4 h-4"></i> Tambah Stok</button>
+      <div id="riwayatBeli" class="text-sm space-y-1 max-h-[300px] overflow-auto border-t pt-3"></div>
+    </div>
+  </section>
+
+  <section id="page-stok" class="page hidden p-4">
+    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="alert-triangle" class="w-5 h-5"></i> Stok & FEFO</h2>
+    <div class="grid md:grid-cols-3 gap-3">
+      <div class="cbm-card p-4 rounded-2xl"><h3 class="font-semibold text-red-600 mb-2 flex items-center gap-1.5"><i data-feather="alert-circle" class="w-4 h-4"></i> Stok Tipis &lt;15</h3><div id="stokTipis" class="text-sm space-y-1"></div></div>
+      <div class="cbm-card p-4 rounded-2xl"><h3 class="font-semibold text-amber-600 mb-2 flex items-center gap-1.5"><i data-feather="clock" class="w-4 h-4"></i> Exp &lt;90 hari</h3><div id="expDekat" class="text-sm space-y-1"></div></div>
+      <div class="cbm-card p-4 rounded-2xl"><h3 class="font-semibold flex items-center gap-1.5"><i data-feather="layers" class="w-4 h-4"></i> Kartu Stok</h3><select id="kartuProduk" class="w-full border rounded-xl px-2 py-2 mb-2"></select><div id="kartuStok" class="text-xs space-y-1 max-h-[250px] overflow-auto"></div></div>
+    </div>
+  </section>
+
+  <section id="page-opname" class="page hidden p-4">
+    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="check-square" class="w-5 h-5"></i> Stok Opname — Multi</h2>
+    <div class="cbm-card p-4 rounded-2xl space-y-3">
+      <div class="flex flex-wrap gap-2">
+        <select id="opProduk" class="flex-1 min-w-[180px] border rounded-xl px-3 py-2"></select>
+        <input id="opFisik" type="number" placeholder="Stok fisik" class="border rounded-xl px-3 py-2 w-[130px]">
+        <button onclick="tambahOpnameDraft()" class="bg-[var(--cbm-accent)] text-white px-4 rounded-xl flex items-center gap-1"><i data-feather="plus" class="w-4 h-4"></i> Tambah</button>
+        <button onclick="openOpnameScanner()" class="border px-3 py-2 rounded-xl flex items-center gap-1"><i data-feather="camera" class="w-4 h-4"></i> Scan</button>
+      </div>
+      <details class="border rounded-xl">
+        <summary class="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Paste — SKU/barcode + qty per baris</summary>
+        <div class="p-3 space-y-2 border-t">
+          <textarea id="opBulkText" rows="4" placeholder="HB001 45&#10;8990001002 30&#10;HB003,25" class="w-full border rounded-xl p-2 text-sm font-mono"></textarea>
+          <button onclick="prosesOpnameBulk()" class="border px-4 py-1.5 rounded-xl text-sm">Tambah Bulk ke Draft</button>
+          <span class="text-xs text-[#718096]">Format: SKU qty atau barcode qty, pisah spasi/koma</span>
+        </div>
+      </details>
+      <div class="border rounded-xl overflow-hidden">
+        <div class="bg-[#f6f7f9] px-3 py-2 flex justify-between items-center"><h3 class="font-semibold text-sm">Draft Opname (<span id="opDraftCount">0</span> item)</h3><div class="flex gap-2"><button onclick="clearOpnameDraft()" class="text-xs border px-2 py-1 rounded-full">Kosongkan</button><button onclick="simpanOpnameMulti()" class="bg-[var(--cbm-accent)] text-white px-4 py-1.5 rounded-xl text-sm">Simpan Semua</button></div></div>
+        <table class="w-full text-xs"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Produk / SKU</th><th>Sistem</th><th>Fisik</th><th>Selisih</th><th>Hapus</th></tr></thead><tbody id="opDraftBody"></tbody></table>
+      </div>
+      <div class="flex gap-2 text-xs">
+        <button onclick="simpanOpname()" class="border px-3 py-1.5 rounded-xl hidden">Simpan Single (lama)</button>
+        <span class="text-[#718096]">Tips: scan beruntun langsung masuk draft • Edit fisik langsung di tabel</span>
+      </div>
+      <div class="border-t pt-3">
+        <h3 class="font-semibold text-sm mb-2 flex items-center gap-2"><i data-feather="list" class="w-4 h-4"></i> Riwayat Opname</h3>
+        <div id="opLog" class="text-sm space-y-1 max-h-[300px] overflow-auto"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="page-promo" class="page hidden p-4">
+    <div class="flex justify-between mb-3"><h2 class="text-xl font-bold flex items-center gap-2"><i data-feather="tag" class="w-5 h-5"></i> Promo Kompleks</h2><button onclick="openPromoModal()" class="bg-[var(--cbm-accent)] text-white px-4 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="plus" class="w-4 h-4"></i> Promo Baru</button></div>
+    <div class="cbm-card rounded-2xl overflow-hidden overflow-auto"><table class="w-full text-xs"><thead class="bg-white text-[#718096]"><tr><th class="p-2 text-left">Nama / Kode</th><th>Tipe</th><th>Nilai</th><th>Syarat</th><th>Periode</th><th>Aktif</th><th>Aksi</th></tr></thead><tbody id="tabelPromo"></tbody></table></div>
+    <div class="mt-3 text-xs text-[#718096] bg-white border p-3 rounded-xl">Tipe: <b>persen</b> (15% Gold), <b>nominal</b> (5rb), <b>bogo</b> (beli 2 gratis 1), <b>bundling</b> (Kelor 2→1), <b>tiered</b> (100rb 10% / 200rb 20%), <b>kategori</b> (Minyak 10%), <b>exp</b> (&lt;30hr). Syarat: minBelanja, memberLevel, kategori, periode, maxDiskon, kode.</div>
+  </section>
+
+  <section id="page-laporan" class="page hidden p-4">
+    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="bar-chart-2" class="w-5 h-5"></i> Laporan Lengkap</h2>
+    <div class="cbm-card p-3 rounded-2xl mb-3 space-y-3">
+      <div class="grid md:grid-cols-5 gap-2">
+        <input id="lapTglMulai" type="date" class="border rounded-xl px-3 py-2 text-sm"><input id="lapTglAkhir" type="date" class="border rounded-xl px-3 py-2 text-sm">
+        <select id="lapKategori" class="border rounded-xl px-3 py-2 text-sm"><option value="">Semua Kategori</option><option>Jamu Cair</option><option>Kapsul</option><option>Minyak</option><option>Teh Herbal</option><option>Madu</option><option>Jamu Bubuk</option></select>
+        <select id="lapSort" class="border rounded-xl px-3 py-2 text-sm"><option value="qty_desc">Sortir: Qty Terjual ↓</option><option value="omzet_desc">Omzet ↓</option><option value="laba_desc">Laba ↓</option><option value="margin_desc">Margin ↓</option><option value="turnover_desc">Perputaran ↓</option><option value="stok_asc">Stok Menipis</option></select>
+        <button onclick="renderLaporan()" class="bg-[var(--cbm-accent)] text-white rounded-xl flex items-center justify-center gap-1"><i data-feather="filter" class="w-4 h-4"></i> Terapkan</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <input id="lapTgl" type="date" class="border rounded-xl px-3 py-1.5 text-sm hidden"><button onclick="exportExcel()" class="bg-[var(--cbm-accent)] text-white px-3 py-1.5 rounded-xl flex items-center gap-1 text-sm"><i data-feather="download" class="w-3 h-3"></i> Excel Transaksi</button><button onclick="exportProdukExcel()" class="border px-3 py-1.5 rounded-xl text-sm flex items-center gap-1"><i data-feather="download" class="w-3 h-3"></i> Excel Produk</button><button onclick="returTransaksiPrompt()" class="border px-3 py-1.5 rounded-xl text-sm flex items-center gap-1"><i data-feather="undo-2" class="w-3 h-3"></i> Retur</button><span class="ml-auto text-xs text-[#718096] flex items-center gap-1"><i data-feather="info" class="w-3 h-3"></i> Margin = Laba/Omzet • Turnover = Terjual / Rata Stok</span>
+      </div>
+    </div>
+    <div class="flex gap-1 bg-white border p-1 rounded-xl w-fit mb-3 text-xs">
+      <button onclick="switchLaporan('ringkasan')" id="lapTabRingkasan" class="px-3 py-1.5 rounded-lg bg-[var(--cbm-accent)] text-white">Ringkasan</button>
+      <button onclick="switchLaporan('transaksi')" id="lapTabTransaksi" class="px-3 py-1.5 rounded-lg hover:bg-slate-50">Detail Transaksi</button>
+      <button onclick="switchLaporan('produk')" id="lapTabProduk" class="px-3 py-1.5 rounded-lg hover:bg-slate-50">Laporan Produk</button>
+      <button onclick="switchLaporan('kategori')" id="lapTabKategori" class="px-3 py-1.5 rounded-lg hover:bg-slate-50">Per Kategori</button>
+    </div>
+    <div id="lapSubRingkasan">
+    <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-3">
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Omzet Periode</div><div id="lapHari" class="font-bold">Rp 0</div><div class="text-[11px] text-[#718096]">Hari: <span id="lapHariLabel"></span></div></div>
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Transaksi</div><div id="lapTrx" class="font-bold">0</div></div>
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Laba</div><div id="lapLaba" class="font-bold text-[var(--cbm-accent)]">Rp 0</div><div id="lapMargin" class="text-xs text-[#718096]">Margin 0%</div></div>
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Margin Rata</div><div id="lapMarginAvg" class="font-bold">0%</div></div>
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Perputaran</div><div id="lapTurnover" class="font-bold">0x</div><div class="text-[11px] text-[#718096]">Avg stok</div></div>
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Top Produk</div><div id="lapTop" class="font-bold truncate text-sm">-</div><div id="lapBulan" class="text-[11px] text-[#718096]">Bulan Rp 0</div></div>
+    </div>
+    </div>
+    <div id="lapSubProduk" class="hidden">
+    <div class="cbm-card rounded-2xl overflow-auto mb-4">
+      <div class="p-3 border-b flex items-center gap-2"><h3 class="font-semibold flex items-center gap-2"><i data-feather="package" class="w-4 h-4"></i> Performa Produk — Sortir & Margin & Perputaran</h3><span id="lapProdukCount" class="text-xs text-[#718096]"></span></div>
+      <table class="w-full text-xs"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Produk / SKU</th><th>Kategori</th><th>Terjual</th><th>Omzet</th><th>HPP</th><th>Laba</th><th>Margin</th><th>Stok</th><th>Turnover</th><th>Status</th></tr></thead><tbody id="tabelProdukPerform"></tbody></table>
+    </div>
+    </div>
+    <div id="lapSubTransaksi" class="hidden">
+    <div class="cbm-card rounded-2xl overflow-auto">
+      <div class="p-3 border-b flex items-center gap-2"><h3 class="font-semibold flex items-center gap-2"><i data-feather="receipt" class="w-4 h-4"></i> Detail Transaksi</h3><span id="lapTrxCount" class="text-xs text-[#718096]"></span></div>
+      <table class="w-full text-sm"><thead class="bg-white"><tr><th class="p-2 text-left">Waktu</th><th>Total</th><th>Laba</th><th>Margin</th><th>Bayar</th><th>Member</th><th>Aksi</th></tr></thead><tbody id="tabelLap"></tbody></table>
+    </div>
+    </div>
+    <div id="lapSubKategori" class="hidden">
+    <div class="cbm-card rounded-2xl overflow-auto">
+      <div class="p-3 border-b flex items-center gap-2"><h3 class="font-semibold flex items-center gap-2"><i data-feather="layers" class="w-4 h-4"></i> Laporan Per Kategori</h3></div>
+      <table class="w-full text-sm"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Kategori</th><th>Terjual</th><th>Omzet</th><th>Laba</th><th>Margin</th><th>Turnover</th></tr></thead><tbody id="tabelKategori"></tbody></table>
+    </div>
+    </div>
+  </section>
+
+  <section id="page-outlet" class="page hidden p-4">
+    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="home" class="w-5 h-5"></i> Multi-Outlet</h2>
+    <div class="cbm-card p-4 rounded-2xl space-y-3"><div class="flex gap-2"><input id="outletNama" placeholder="Nama outlet baru" class="flex-1 border rounded-xl px-3 py-2"><button onclick="tambahOutlet()" class="bg-[var(--cbm-accent)] text-white px-4 rounded-xl flex items-center gap-1"><i data-feather="plus" class="w-4 h-4"></i> Tambah</button></div><div id="outletList" class="space-y-2 text-sm"></div></div>
+  </section>
+
+  <section id="page-users" class="page hidden p-4">
+    <div class="flex justify-between mb-3"><h2 class="text-xl font-bold flex items-center gap-2"><i data-feather="user-cog" class="w-5 h-5"></i> Kelola User — Owner</h2><button onclick="openUserModal()" class="bg-[var(--cbm-accent)] text-white px-4 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="user-plus" class="w-4 h-4"></i> User Baru</button></div>
+    <div class="cbm-card rounded-2xl overflow-hidden overflow-auto"><table class="w-full text-sm"><thead class="bg-white text-[#718096]"><tr><th class="p-3 text-left">Nama / Username</th><th>Role</th><th>Toko</th><th>Aksi</th></tr></thead><tbody id="tabelUsers"></tbody></table></div>
+    <div class="mt-3 text-xs text-[#718096] bg-white border p-3 rounded-xl">Hierarki: <b>Owner</b> (admin/admin) → <b>SPV</b> (jaga beberapa toko) → <b>Kasir</b> (1 toko). Tambah SPV &amp; Kasir baru di sini — password bisa diganti lewat tombol Edit.</div>
+  </section>
+
+    <section id="page-shift" class="page hidden p-4">
+    <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="clock" class="w-5 h-5"></i> Buka/Tutup Shift � Per Toko Terpisah</h2>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="cbm-card p-4 rounded-2xl space-y-3">
+        <h3 class="font-semibold flex items-center gap-2"><i data-feather="log-in" class="w-4 h-4"></i> Buka Shift</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <select id="shiftOutlet" class="border rounded-xl px-3 py-2 bg-white"></select>
+          <select id="shiftUser" class="border rounded-xl px-3 py-2 bg-white"></select>
+        </div>
+        <input id="shiftSaldo" type="number" placeholder="Saldo awal kas (Rp)" class="w-full border rounded-xl px-3 py-2">
+        <button onclick="bukaShift()" class="w-full bg-[var(--cbm-accent)] text-white py-2 rounded-xl flex items-center justify-center gap-2"><i data-feather="play" class="w-4 h-4"></i> Buka Shift</button>
+        <div id="shiftAktifInfo" class="text-xs bg-[#f6f7f9] border p-3 rounded-xl"></div>
+      </div>
+      <div class="cbm-card p-4 rounded-2xl space-y-3">
+        <h3 class="font-semibold flex items-center gap-2"><i data-feather="log-out" class="w-4 h-4"></i> Tutup Shift</h3>
+        <select id="shiftTutupSelect" class="w-full border rounded-xl px-3 py-2 bg-white"></select>
+        <button onclick="tutupShiftTerpilih()" class="w-full bg-slate-900 text-white py-2 rounded-xl flex items-center justify-center gap-2"><i data-feather="power" class="w-4 h-4"></i> Tutup Shift Terpilih</button>
+        <button onclick="tutupShift()" class="w-full border py-2 rounded-xl">Tutup Shift Saya (Outlet Aktif)</button>
+        <div class="text-xs text-[#718096]">Shift terpisah per outlet & per admin. Transaksi hanya bisa saat shift buka di outlet tersebut.</div>
+      </div>
+    </div>
+    <div class="cbm-card p-4 rounded-2xl mt-4">
+      <h3 class="font-semibold mb-2 flex items-center gap-2"><i data-feather="list" class="w-4 h-4"></i> Riwayat Shift Per Toko</h3>
+      <div class="flex gap-2 mb-3"><select id="shiftFilterOutlet" onchange="renderShift()" class="border rounded-xl px-3 py-2"><option value="">Semua Toko</option></select><button onclick="renderShift()" class="border px-3 py-1.5 rounded-xl">Refresh</button></div>
+      <div class="overflow-auto"><table class="w-full text-sm"><thead class="bg-[#f6f7f9]"><tr><th class="p-2 text-left">Shift</th><th>Toko</th><th>Admin</th><th>Buka</th><th>Tutup</th><th>Transaksi</th><th>Omzet</th><th>Status</th></tr></thead><tbody id="shiftTabel"></tbody></table></div>
+    </div>
+  </section>
+
+  <section id="page-setting" class="page hidden p-4">
+    <div class="flex justify-between items-center mb-3"><h2 class="text-xl font-bold flex items-center gap-2"><i data-feather="settings" class="w-5 h-5"></i> Printer & Barcode</h2><button onclick="document.querySelector('[data-page=outlet]').click()" class="border px-3 py-1.5 rounded-xl text-sm flex items-center gap-1"><i data-feather="home" class="w-4 h-4"></i> Kelola Outlet</button></div>
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="cbm-card p-4 rounded-2xl space-y-3">
+        <h3 class="font-semibold flex items-center gap-2"><i data-feather="printer" class="w-4 h-4"></i> Printer Thermal ESC/POS</h3>
+        <div class="grid grid-cols-2 gap-2"><select id="paperSize" class="border rounded-xl px-3 py-2"><option value="58">58mm</option><option value="80">80mm</option></select><select id="printerConn" class="border rounded-xl px-3 py-2"><option>Browser Print</option><option>WebUSB (ESC/POS)</option><option>Web Serial</option></select></div>
+        <input id="tokoNama" class="w-full border rounded-xl px-3 py-2" value="TOKO HERBAL ALAMI"><input id="tokoAlamat" class="w-full border rounded-xl px-3 py-2" value="Jl. Jamu Sehat No.12 - 0812-0000-1234">
+        <label class="flex gap-2 text-sm"><input type="checkbox" id="optDrawer" checked> Buka laci otomatis</label><label class="flex gap-2 text-sm"><input type="checkbox" id="optCut" checked> Potong kertas</label>
+        <div class="flex gap-2"><button onclick="connectPrinter()" class="bg-slate-900 text-white px-4 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="plug" class="w-4 h-4"></i> Connect</button><button onclick="testPrint()" class="border px-4 py-2 rounded-xl">Test Print</button><button onclick="bukaLaci()" class="border px-4 py-2 rounded-xl">Buka Laci</button></div>
+        <div id="printerStatus" class="text-xs text-[#718096]">Browser Print siap</div>
+      </div>
+      <div class="cbm-card p-4 rounded-2xl space-y-3">
+        <h3 class="font-semibold flex items-center gap-2"><i data-feather="barcode" class="w-4 h-4"></i> Generator Barcode</h3>
+        <input id="genText" placeholder="Isi barcode" class="w-full border rounded-xl px-3 py-2"><select id="genType" class="w-full border rounded-xl px-3 py-2"><option value="CODE128">CODE128</option><option value="EAN13">EAN13</option><option value="CODE39">CODE39</option></select>
+        <button onclick="generateBarcode()" class="bg-[var(--cbm-accent)] text-white px-4 py-2 rounded-xl w-full">Generate</button>
+        <div class="border rounded-xl p-3 text-center bg-white"><svg id="barcode"></svg><div id="barcodeText" class="text-xs"></div></div>
+        <button onclick="window.print()" class="border w-full py-2 rounded-xl">Print Label</button>
+      </div>
+    </div>
+    <div class="cbm-card p-4 rounded-2xl mt-4">
+      <h3 class="font-semibold flex items-center gap-2"><i data-feather="layers" class="w-4 h-4"></i> Kelola Kategori — Auto Tambah</h3>
+      <p class="text-xs text-[#718096]">Kategori otomatis bertambah saat input produk baru. Bisa tambah manual di sini.</p>
+      <div class="flex gap-2 mt-2"><input id="kategoriBaru" placeholder="Nama kategori baru" class="flex-1 border rounded-xl px-3 py-2"><button onclick="tambahKategori()" class="bg-[var(--cbm-accent)] text-white px-4 rounded-xl">Tambah</button></div>
+      <div id="kategoriList" class="space-y-1 mt-3 max-h-[200px] overflow-auto"></div>
+    </div>
+    <div class="grid lg:grid-cols-2 gap-4 mt-4">
+      <div class="cbm-card p-4 rounded-2xl">
+        <h3 class="font-semibold flex items-center gap-2"><i data-feather="users" class="w-4 h-4"></i> Setting Member Level</h3>
+        <p class="text-xs text-[#718096] mb-2">Ubah nama & diskon% di sini — langsung dipakai di Member & Kasir.</p>
+        <div id="settingMemberLevelList" class="space-y-2 max-h-[260px] overflow-auto"></div>
+        <button onclick="tambahMemberLevel()" class="mt-2 border px-3 py-1.5 rounded-xl text-xs w-full">+ Tambah Level</button>
+      </div>
+      <div class="space-y-4">
+        <div class="cbm-card p-4 rounded-2xl">
+          <h3 class="font-semibold flex items-center gap-2"><i data-feather="percent" class="w-4 h-4"></i> Pajak & Promo</h3>
+          <label class="flex items-center gap-2 text-sm mt-2"><input type="checkbox" id="settingPpn" onchange="togglePpnSetting(this.checked)"> Aktifkan PPN 11% default di Kasir</label>
+          <div class="mt-3 flex gap-2">
+            <button onclick="document.querySelector('[data-page=promo]').click()" class="flex-1 border px-3 py-2 rounded-xl text-sm flex items-center justify-center gap-1"><i data-feather="tag" class="w-4 h-4"></i> Kelola Promo</button>
+            <button onclick="openPromoModal()" class="flex-1 bg-[var(--cbm-accent)] text-white px-3 py-2 rounded-xl text-sm">+ Promo Baru</button>
+          </div>
+        </div>
+        <div class="cbm-card p-4 rounded-2xl">
+          <h3 class="font-semibold flex items-center gap-2"><i data-feather="hard-drive" class="w-4 h-4"></i> Backup & Restore</h3>
+          <p class="text-xs text-[#718096]">Backup sebelum coba — bisa restore jika tidak jadi.</p>
+          <div class="grid grid-cols-2 gap-2 mt-2">
+            <button onclick="exportData()" class="bg-[var(--cbm-accent)] text-white py-2 rounded-xl text-sm flex items-center justify-center gap-1"><i data-feather="download" class="w-4 h-4"></i> Export JSON</button>
+            <label class="border py-2 rounded-xl text-sm flex items-center justify-center gap-1 cursor-pointer"><i data-feather="upload" class="w-4 h-4"></i> Import JSON<input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)"></label>
+          </div>
+          <button onclick="buatBackup()" class="w-full mt-2 border py-2 rounded-xl text-sm">Buat Backup Lokal Sekarang</button>
+          <div id="backupInfo" class="text-xs text-[#718096] mt-2"></div>
+        </div>
+        <div class="cbm-card p-4 rounded-2xl border-2 border-[var(--cbm-accent-soft)]">
+          <h3 class="font-semibold flex items-center gap-2"><i data-feather="cloud" class="w-4 h-4"></i> Internet Sync — Supabase (Singapore)</h3>
+          <p class="text-xs text-[#718096] mt-1">Agar bisa dibuka dari internet dengan cepat, isi URL & anon key dari Supabase. Data akan sync otomatis, buka offline tetap jalan via cache.</p>
+          <div class="space-y-2 mt-3">
+            <input id="supaUrl" placeholder="https://xxxxx.supabase.co" class="w-full border rounded-xl px-3 py-2 text-sm">
+            <input id="supaKey" placeholder="anon key (eyJ...)" class="w-full border rounded-xl px-3 py-2 text-sm">
+            <div class="flex gap-2">
+              <button onclick="saveSupaConfig()" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl text-sm">Simpan & Connect</button>
+              <button onclick="testSupa()" class="border px-4 py-2 rounded-xl text-sm">Test</button>
+            </div>
+            <div id="supaStatus" class="text-xs p-2 rounded-xl bg-[#f6f7f9] border">Status: <span id="supaStatusText">belum dikonfigurasi — pakai localStorage</span></div>
+            <div class="flex gap-2 text-xs">
+              <button onclick="syncToSupabase()" class="flex-1 border py-1.5 rounded-full">Upload Lokal → Cloud</button>
+              <button onclick="syncFromSupabase()" class="flex-1 border py-1.5 rounded-full">Download Cloud → Lokal</button>
+            </div>
+            <p class="text-[11px] text-[#718096]">Setup: 1) Buat project di supabase.com (region Singapore), 2) Jalankan <code>supabase/schema.sql</code> di SQL Editor, 3) Paste URL+key di sini.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<dialog id="modalProduk" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-2" onsubmit="simpanProduk(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="package" class="w-4 h-4"></i> Form Produk + SKU</h3><input type="hidden" id="p_id"><input id="p_nama" placeholder="Nama produk" class="w-full px-3 py-2 border rounded-xl" required><div class="grid grid-cols-2 gap-2"><input id="p_kat" list="kategoriDatalist" placeholder="Kategori (ketik baru otomatis tambah)" class="border rounded-xl px-3 py-2" required><datalist id="kategoriDatalist"></datalist><input id="p_harga" type="number" placeholder="Harga jual" class="border rounded-xl px-3 py-2" required></div><div class="grid grid-cols-3 gap-2"><input id="p_hpp" type="number" placeholder="HPP" class="border rounded-xl px-3 py-2"><input id="p_stok" type="number" placeholder="Stok" class="border rounded-xl px-3 py-2" required><input id="p_bpom" placeholder="No BPOM" class="border rounded-xl px-3 py-2"></div><div class="grid grid-cols-3 gap-2"><input id="p_batch" placeholder="No Batch" class="border rounded-xl px-3 py-2"><input id="p_exp" type="date" class="border rounded-xl px-3 py-2" required><div class="flex gap-1"><input id="p_barcode" placeholder="Barcode" class="flex-1 border rounded-xl px-3 py-2"><button type="button" onclick="generateBarcodeForProduk()" class="px-2 border rounded-xl bg-white text-xs whitespace-nowrap">Generate</button></div></div><select id="p_supplier" class="w-full border rounded-xl px-3 py-2"></select><div class="flex justify-end gap-2 pt-2"><button type="button" onclick="modalProduk.close()" class="border px-4 py-2 rounded-xl">Batal</button><button class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl">Simpan</button></div></form></dialog>
+<dialog id="modalMember" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-2" onsubmit="simpanMember(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="users" class="w-4 h-4"></i> Form Member</h3><input type="hidden" id="m_id"><input id="m_nama" placeholder="Nama" class="w-full px-3 py-2 border rounded-xl" required><input id="m_hp" placeholder="HP" class="w-full px-3 py-2 border rounded-xl" required><select id="m_level" class="w-full border rounded-xl px-3 py-2"><option>Bronze</option><option>Silver</option><option>Gold</option><option>Platinum</option></select><div class="flex justify-end gap-2"><button type="button" onclick="modalMember.close()" class="border px-4 py-2 rounded-xl">Batal</button><button class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl">Simpan</button></div></form></dialog>
+<dialog id="modalSupplier" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-2" onsubmit="simpanSupplier(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="truck" class="w-4 h-4"></i> Form Supplier</h3><input type="hidden" id="s_id"><input id="s_nama" placeholder="Nama supplier" class="w-full px-3 py-2 border rounded-xl" required><input id="s_kontak" placeholder="Kontak HP" class="w-full px-3 py-2 border rounded-xl"><input id="s_alamat" placeholder="Alamat" class="w-full px-3 py-2 border rounded-xl"><div class="flex justify-end gap-2"><button type="button" onclick="modalSupplier.close()" class="border px-4 py-2 rounded-xl">Batal</button><button class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl">Simpan</button></div></form></dialog>
+<dialog id="modalPromo" class="p-0 rounded-2xl w-[640px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3 max-h-[85vh] overflow-auto" onsubmit="simpanPromo(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="tag" class="w-4 h-4"></i> Promo — Pilih Tipe, Isi Kotak Sesuai</h3><input type="hidden" id="pr_id">
+<div class="bg-[#f6f7f9] border p-3 rounded-xl space-y-2">
+<div class="text-xs font-semibold text-[var(--cbm-accent)]">1. Nama & Tipe (wajib)</div>
+<input id="pr_nama" placeholder="Nama promo (contoh: Gold 15% / Bundling Kelor)" class="w-full px-3 py-2 border rounded-xl bg-white" required>
+<div class="grid grid-cols-2 gap-2"><select id="pr_tipe" class="border rounded-xl px-3 py-2 bg-white"><option value="persen">Persen %</option><option value="nominal">Nominal Rp</option><option value="bogo">BOGO (gratis 1)</option><option value="bundling">Bundling (beli X gratis Y)</option><option value="tiered">Tiered (min bertingkat)</option><option value="kategori">Kategori %</option></select><input id="pr_kode" placeholder="Kode (kosong = auto, isi = pakai kode)" class="border rounded-xl px-3 py-2 bg-white"></div>
+</div>
+<div id="promoBox_persen" class="promo-type-box hidden border rounded-xl p-3 bg-white space-y-2">
+<div class="text-xs font-bold text-[var(--cbm-accent)]">Persen — Diskon %</div>
+<div class="grid grid-cols-2 gap-2"><input id="pr_nilai" type="number" placeholder="Diskon % (misal 10)" class="border rounded-xl px-3 py-2"><input id="pr_maxDiskon" type="number" placeholder="Max diskon Rp (0=tak terbatas)" class="border rounded-xl px-3 py-2"></div>
+<div class="grid grid-cols-2 gap-2"><select id="pr_kategori" class="border rounded-xl px-3 py-2 bg-white"><option value="">Semua Kategori</option></select><input id="pr_expHari" type="number" placeholder="Exp hari (0=semua)" class="border rounded-xl px-3 py-2"></div>
+</div>
+<div id="promoBox_nominal" class="promo-type-box hidden border rounded-xl p-3 bg-white space-y-2">
+<div class="text-xs font-bold text-[var(--cbm-accent)]">Nominal — Potongan Rp</div>
+<div class="grid grid-cols-2 gap-2"><input id="pr_nilai_nominal" type="number" placeholder="Potongan Rp" class="border rounded-xl px-3 py-2"><input id="pr_minBelanja" type="number" placeholder="Min belanja Rp" class="border rounded-xl px-3 py-2"></div>
+</div>
+<div id="promoBox_bogo" class="promo-type-box hidden border rounded-xl p-3 bg-[#f6f7f9] text-xs text-[#718096]">
+<b>BOGO</b> — Otomatis beli 2 gratis termurah. Tidak perlu isi nilai. Cukup tentukan member & periode di bawah.
+</div>
+<div id="promoBox_bundling" class="promo-type-box hidden border rounded-xl p-3 bg-white space-y-2">
+<div class="text-xs font-bold text-[var(--cbm-accent)]">Bundling — Beli X Gratis Y</div>
+<div class="grid grid-cols-2 gap-2"><input id="pr_nilai_bundling" type="number" placeholder="Beli berapa (X)" class="border rounded-xl px-3 py-2"><input id="pr_nilai2" type="number" placeholder="Gratis berapa (Y)" class="border rounded-xl px-3 py-2"></div>
+<div class="border rounded-xl p-2 bg-[#f6f7f9]">
+<div class="text-xs font-semibold mb-1">Pilih Produk Pemicu — beli (A) — centang</div>
+<div id="pr_produkPicker" class="grid grid-cols-1 gap-1 max-h-[120px] overflow-auto bg-white border rounded-lg p-2"></div>
+<input type="hidden" id="pr_produkIds">
+</div>
+<div class="border rounded-xl p-2 bg-[#ecfdf5]">
+<div class="text-xs font-semibold text-[#059669] mb-1">Pilih Produk Gratis — free (B) — kosong = gratis produk yang sama</div>
+<div id="pr_produkPickerFree" class="grid grid-cols-1 gap-1 max-h-[120px] overflow-auto bg-white border rounded-lg p-2"></div>
+<input type="hidden" id="pr_freeProdukIds">
+</div>
+</div>
+<div id="promoBox_tiered" class="promo-type-box hidden border rounded-xl p-3 bg-white space-y-2">
+<div class="text-xs font-bold text-[var(--cbm-accent)]">Tiered — Diskon bertingkat</div>
+<div class="grid grid-cols-3 gap-2"><input id="pr_nilai_tiered" type="number" placeholder="Tier1 % (100rb)" class="border rounded-xl px-3 py-2"><input id="pr_nilai2_tiered" type="number" placeholder="Tier2 % (200rb)" class="border rounded-xl px-3 py-2"><input id="pr_minBelanja_tiered" type="number" placeholder="Min tier1 Rp" class="border rounded-xl px-3 py-2"></div>
+</div>
+<div id="promoBox_kategori" class="promo-type-box hidden border rounded-xl p-3 bg-white space-y-2">
+<div class="text-xs font-bold text-[var(--cbm-accent)]">Kategori — Diskon per kategori</div>
+<div class="grid grid-cols-2 gap-2"><select id="pr_kategori_k" class="border rounded-xl px-3 py-2 bg-white"><option value="">Pilih Kategori</option></select><input id="pr_nilai_kategori" type="number" placeholder="Diskon %" class="border rounded-xl px-3 py-2"></div>
+</div>
+<div class="border rounded-xl p-3 bg-white space-y-2">
+<div class="text-xs font-semibold text-[#718096]">Umum — untuk semua tipe</div>
+<div class="grid grid-cols-2 gap-2"><select id="pr_memberLevel" class="border rounded-xl px-3 py-2 bg-white"><option value="">Semua Level</option></select><label class="flex items-center gap-2 text-sm border rounded-xl px-3 bg-white"><input type="checkbox" id="pr_aktif" checked> Aktif</label></div>
+<div class="grid grid-cols-2 gap-2"><input id="pr_periodeStart" type="date" class="border rounded-xl px-3 py-2 bg-white"><input id="pr_periodeEnd" type="date" class="border rounded-xl px-3 py-2 bg-white"></div>
+</div>
+<div class="flex justify-end gap-2 pt-2"><button type="button" onclick="modalPromo.close()" class="border px-4 py-2 rounded-xl">Batal</button><button class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl">Simpan</button></div></form></dialog>
+
+<dialog id="modalLogin" class="p-0 rounded-2xl w-[380px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="login(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="log-in" class="w-4 h-4"></i> Masuk — Owner / SPV / Kasir</h3><div class="bg-[#f6f7f9] border border-[#e6e8eb] p-3 rounded-xl space-y-2"><label class="text-xs font-semibold text-[#718096]">1. Pilih Toko</label><select id="loginOutlet" class="w-full border rounded-xl px-3 py-2 bg-white"></select><label class="text-xs font-semibold text-[#718096]">2. Username</label><input id="loginUsername" placeholder="admin / spvgamping / kasirgamping" autocomplete="username" class="w-full border rounded-xl px-3 py-2 bg-white" oninput="updateLoginUser()"><label class="text-xs font-semibold text-[#718096]">3. Password</label><input id="loginPassword" type="password" placeholder="Password" autocomplete="current-password" required class="w-full border rounded-xl px-3 py-2 bg-white"></div><button class="w-full bg-[var(--cbm-accent)] text-white py-2.5 rounded-xl font-semibold">Masuk ke Sistem</button><div class="text-xs text-[#718096] text-center">Owner: admin / admin<br>SPV: spvaliya / spv • spvgamping / spv<br>Kasir: kasiraliya / kasir • kasirgamping / kasir<br><span class="text-[11px]">Kasir terkunci ke 1 toko • SPV pilih toko yang dijaga • Owner semua toko</span></div></form></dialog>
+<dialog id="modalUser" class="p-0 rounded-2xl w-[460px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="simpanUser(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="user-plus" class="w-4 h-4"></i> Form User — SPV / Kasir</h3><input type="hidden" id="u_id"><input id="u_nama" placeholder="Nama user" class="w-full px-3 py-2 border rounded-xl bg-white" required><div class="grid grid-cols-2 gap-2"><input id="u_username" placeholder="Username" class="border rounded-xl px-3 py-2 bg-white" required><input id="u_password" placeholder="Password" type="text" class="border rounded-xl px-3 py-2 bg-white" required></div><select id="u_role" class="w-full border rounded-xl px-3 py-2 bg-white"><option value="Kasir">Kasir (1 toko)</option><option value="Spv">SPV (beberapa toko)</option></select><div id="u_outletBox" class="border rounded-xl p-2 bg-white"></div><p class="text-[11px] text-[#718096]">Akun Owner tetap admin/admin dan tidak bisa diubah/dihapus dari sini.</p><div class="flex justify-end gap-2"><button type="button" onclick="modalUser.close()" class="border px-4 py-2 rounded-xl">Batal</button><button class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl">Simpan</button></div></form></dialog>
+<dialog id="modalScanner" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><div class="p-4 space-y-3"><h3 class="font-bold flex items-center gap-2"><i data-feather="camera" class="w-4 h-4"></i> Scan Barcode</h3><div id="reader" class="rounded-xl overflow-hidden border"></div><button onclick="stopScanner();modalScanner.close()" class="w-full border py-2 rounded-xl">Tutup</button></div></dialog>
+<dialog id="modalBulk" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulk(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Multi Input by Nota</h3><p class="text-xs text-[#718096]">Paste banyak barcode/SKU per baris: <code>barcode qty</code> atau <code>SKU,qty</code>. Contoh:<br>8990001001 2<br>HB002 1<br>8990001003,3</p><textarea id="bulkText" rows="7" placeholder="8990001001 2&#10;HB002 1&#10;8990001003 3" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Tambah ke Nota</button><button type="button" onclick="modalBulk.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div><div class="text-xs bg-white p-2 rounded-xl">Tips: bisa scan beruntun tanpa tutup modal, atau paste dari Excel. Nota aktif: <b id="bulkNotaId"></b></div></form></dialog>
+<dialog id="modalPrinter" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><div class="p-4 space-y-2"><h3 class="font-bold flex items-center gap-2"><i data-feather="printer" class="w-4 h-4"></i> Printer</h3><div id="printPreview" class="border p-3 text-xs bg-white"></div><div class="flex gap-2"><button onclick="window.print()" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Print</button><button onclick="modalPrinter.close()" class="flex-1 border py-2 rounded-xl">Tutup</button></div></div></dialog>
+<div id="struk-area" class="hidden bg-white p-3 w-[58mm] text-[11px] leading-tight"><div class="text-center border-b border-dashed pb-2 mb-2"><div id="strukToko" class="font-bold"></div><div id="strukAlamat" class="text-[10px]"></div></div><div id="strukBody"></div><div class="text-center mt-2 border-t border-dashed pt-2">Terima kasih <br><svg id="strukBarcode" class="mx-auto mt-1"></svg></div></div>
+<script src="js/config.js?v=812e83e"></script>
+<script src="js/db.js?v=812e83e"></script>
+<script src="js/supabase.js?v=812e83e"></script>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
+<script src="js/app.js?v=812e83e"></script>
+<script src="js/sync.js?v=812e83e"></script>
+<script>feather.replace({ 'stroke-width': 1.4 }); document.addEventListener('DOMContentLoaded',()=> feather.replace({ 'stroke-width': 1.4 })); const ro=new MutationObserver(()=>{try{feather.replace({ 'stroke-width': 1.4 })}catch{}}); ro.observe(document.body,{childList:true,subtree:true});</script>
+</body>
+</html>

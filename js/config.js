@@ -11,12 +11,8 @@ window.SUPABASE_CONFIG = {
   if(c.url && c.anonKey) c.enabled = true;
 })();
 
-// AUTO POPUP TIAP BUKA LINK — harus sebelum app.js load, jadi taruh di config.js
-try{
-  localStorage.removeItem('herbal_curUser');
-  sessionStorage.removeItem('pos_session');
-  console.log('[config] force clear curUser for auto popup');
-}catch(e){}
+// Sesi login PERSISTEN — reload/refresh tidak perlu login lagi.
+// Keluar manual lewat tombol Keluar (logout) untuk ganti user/toko.
 
 // Dexie cache config
 window.CACHE_CONFIG = {

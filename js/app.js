@@ -146,6 +146,12 @@ async function loadData(){
     produk=produk.filter(p=>!/^tes bulk/i.test((p.nama||'').trim()));
     localStorage.setItem('herbal_v7','1');
   }
+  // sesi tersimpan: pastikan user masih ada & masih boleh akses toko aktif
+  if(currentUser){
+    const fresh=users.find(u=>u.id===currentUser.id);
+    if(!fresh) currentUser=null;
+    else { currentUser=fresh; if(!canAccessOutlet(currentUser,currentOutlet)) currentOutlet=(myOutlets(currentUser)[0]||outlets[0]).id; }
+  }
   if(!produk.length) produk=[...DEFAULT_PRODUK];
   if(!member.length) member=[...DEFAULT_MEMBER];
   // SKU profesional: ensure each produk has SKU = KAT-BARCODE, referral code for member

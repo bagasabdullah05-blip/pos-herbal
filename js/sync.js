@@ -196,18 +196,7 @@ function refreshSupaUI(){
   }
 }
 
-// AUTO POPUP LOGIN SETIAP KLIK LINK (tanpa hard reset) — paksa popup tiap load
-(function(){
-  try{
-    const keyCurUser = 'herbal_curUser';
-    // selalu paksa logout saat halaman di-load via link (bukan hard reset)
-    // hapus curUser agar modalLogin otomatis muncul di renderAll()
-    localStorage.removeItem(keyCurUser);
-    sessionStorage.removeItem('pos_session');
-    sessionStorage.removeItem('pos_session_user');
-    console.log('[sync] force clear curUser for auto popup tiap buka link');
-  }catch(e){ console.warn('auto popup', e.message); }
-})();
+// Sesi login PERSISTEN — jangan hapus curUser saat load (reload tidak perlu login lagi).
 
 // init wrapping setelah app.js load
 (function(){

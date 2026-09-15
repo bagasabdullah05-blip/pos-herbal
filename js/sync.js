@@ -106,7 +106,7 @@ async function hybridLoadData(){
   // paksa modal login muncul jika belum login (DIAM fix)
   setTimeout(()=>{
     try{
-      const cur = window.currentUser;
+      const cur = (window.getCurrentUser?window.getCurrentUser():null);
       const modal = document.getElementById('modalLogin');
       if(!cur && modal && !modal.open){
         console.log('[sync] force show login modal');
@@ -233,14 +233,10 @@ function refreshSupaUI(){
   });
   // juga panggil langsung
   setTimeout(refreshSupaUI, 800);
-  // global error handler agar DIAM tidak terulang — log tapi jangan block render
+  // global error handler: catat saja, JANGAN paksa tampilkan login
+  // (error apapun tidak boleh mengeluarkan user yang sedang login)
   window.addEventListener('error', (e)=>{
     console.warn('[global error]', e.message, e.error);
-    // jika error dari supabase/dexie, paksa tampilkan login
-    setTimeout(()=>{
-      const m=document.getElementById('modalLogin');
-      if(m && !m.open && !window.currentUser) try{m.showModal()}catch{}
-    }, 500);
   });
   window.addEventListener('unhandledrejection', (e)=>{
     console.warn('[unhandled]', e.reason);

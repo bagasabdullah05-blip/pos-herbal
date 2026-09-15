@@ -84,7 +84,7 @@ const SupaDB = {
     const s = getSupa(); if(!s) return;
     const { error } = await s.from('transaksi').insert({
       id:t.id, waktu:t.waktu||new Date().toISOString(), outlet_id:t.outlet||t.outlet_id||'OUT001',
-      user_id:t.user_id||window.currentUser?.id||null, member_id:t.member||t.member_id||null,
+      user_id:t.user_id||(window.getCurrentUser?window.getCurrentUser():null)?.id||null, member_id:t.member||t.member_id||null,
       cart: t.cart||[], subtotal:t.subtotal||0, diskon:t.diskon||0, ppn:t.ppn||0, total:t.total||0, bayar:t.bayar||'Tunai', status:t.status||'paid'
     });
     if(error) throw error;

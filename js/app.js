@@ -1,6 +1,7 @@
 const LS={produk:'herbal_produk',member:'herbal_member',trx:'herbal_trx',sup:'herbal_sup',beli:'herbal_beli',op:'herbal_op',promo:'herbal_promo',outlet:'herbal_outlet',users:'herbal_users',curOut:'herbal_curOut',curUser:'herbal_curUser',nota:'herbal_nota',curNota:'herbal_curNota',shift:'herbal_shift',mLevel:'herbal_mLevel',kategori:'herbal_kategori',ppn:'herbal_ppn'};
 let produk=[],member=[],trx=[],supplier=[],pembelian=[],opname=[],promo=[],outlets=[],users=[],notas=[],shifts=[],memberLevels=[],kategoriList=[],cart=[],pay='Tunai';
 let currentOutlet='OUT001', currentUser=null, currentNotaId=null;
+window.getCurrentUser=()=>currentUser;
 let printerDevice=null, printerPort=null;
 const DEFAULT_OUTLETS=[
   {id:'OUT001',nama:'Aliya Herba'},

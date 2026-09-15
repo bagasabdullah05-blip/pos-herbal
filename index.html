@@ -108,6 +108,7 @@
         <div class="flex justify-between"><span>Diskon Member <span id="labelDiskon"></span></span><span id="diskonRp">- Rp 0</span></div>
         <div class="flex justify-between"><span>Promo</span><span id="promoRp">- Rp 0</span></div><div id="promoInfo" class="text-xs text-[var(--cbm-accent)]"></div>
         <div class="flex justify-between"><span>PPN 11%</span><span id="ppnRp">Rp 0</span></div>
+        <div class="flex justify-between hidden" id="qrisFeeRow"><span id="qrisFeeLabel">Biaya QRIS</span><span id="qrisFeeRp">Rp 0</span></div>
         <div class="flex justify-between font-bold text-base border-t pt-2"><span>Total</span><span id="total" class="text-[var(--cbm-accent)]">Rp 0</span></div>
         <div class="grid grid-cols-4 gap-1.5">
           <button onclick="setPay('Tunai')" id="btnTunai" class="pay-btn bg-[var(--cbm-accent)] text-white py-2.5 rounded-xl font-semibold flex items-center justify-center gap-1"><i data-feather="credit-card" class="w-3.5 h-3.5"></i> Tunai</button>
@@ -165,6 +166,16 @@
       <div id="riwayatBeli" class="text-sm space-y-1 max-h-[300px] overflow-auto border-t pt-3"></div>
       <div id="pagerBeli"></div>
     </div>
+    <div class="cbm-card p-4 rounded-2xl space-y-3 mt-4">
+      <h3 class="font-semibold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Terima — Multi Produk (klik)</h3>
+      <input id="beliPickCari" oninput="beliPickRender()" placeholder="Ketik min. 2 huruf, klik + untuk masuk draft..." class="w-full border rounded-xl px-3 py-2 text-sm">
+      <div id="beliPickList" class="max-h-[220px] overflow-auto border rounded-xl p-1"><div class="text-xs text-[#718096] p-2">Ketik min. 2 huruf untuk cari produk…</div></div>
+      <div class="border rounded-xl overflow-hidden">
+        <div class="bg-[#f6f7f9] px-3 py-2 flex justify-between items-center"><h3 class="font-semibold text-sm">Draft Terima (<span id="beliDraftCount">0</span> produk)</h3><div class="flex gap-2"><button onclick="clearBeliDraft()" class="text-xs border px-2 py-1 rounded-full">Kosongkan</button><button onclick="terimaBeliDraft()" class="bg-[var(--cbm-accent)] text-white px-4 py-1.5 rounded-xl text-sm">Terima Semua</button></div></div>
+        <table class="w-full text-sm"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Produk</th><th>Qty</th><th>HPP</th><th>Hapus</th></tr></thead><tbody id="beliDraftBody"><tr><td colspan="4" class="p-4 text-center text-[#718096]">Draft kosong — cari produk di atas lalu klik +</td></tr></tbody></table>
+      </div>
+      <div class="text-xs text-[#718096]">Supplier + Batch + EXP diambil dari form di atas. HPP per baris bisa diubah (0 = ikut HPP lama).</div>
+    </div>
   </section>
 
   <section id="page-stok" class="page hidden p-4">
@@ -191,6 +202,14 @@
           <textarea id="opBulkText" rows="4" placeholder="HB001 45&#10;8990001002 30&#10;HB003,25" class="w-full border rounded-xl p-2 text-sm font-mono"></textarea>
           <button onclick="prosesOpnameBulk()" class="border px-4 py-1.5 rounded-xl text-sm">Tambah Bulk ke Draft</button>
           <span class="text-xs text-[#718096]">Format: SKU qty atau barcode qty, pisah spasi/koma</span>
+        </div>
+      </details>
+      <details class="border rounded-xl">
+        <summary class="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"><i data-feather="check-square" class="w-4 h-4"></i> Pilih Multi Produk — centang & masuk draft</summary>
+        <div class="p-3 space-y-2 border-t">
+          <input id="opPickCari" oninput="renderOpPick()" placeholder="Ketik nama / SKU / barcode..." class="w-full border rounded-xl px-3 py-2 text-sm">
+          <div id="opPickList" class="max-h-[220px] overflow-auto border rounded-xl p-1"><div class="text-xs text-[#718096] p-2">Ketik untuk cari produk…</div></div>
+          <div class="flex items-center gap-2"><button onclick="opPickKeDraft()" class="border px-4 py-1.5 rounded-xl text-sm">Masukkan ke Draft</button><span id="opPickMore" class="text-xs text-[#718096]"></span></div>
         </div>
       </details>
       <div class="border rounded-xl overflow-hidden">
@@ -284,26 +303,28 @@
     <div class="grid lg:grid-cols-2 gap-4">
       <div class="cbm-card p-4 rounded-2xl space-y-3">
         <h3 class="font-semibold flex items-center gap-2"><i data-feather="log-in" class="w-4 h-4"></i> Buka Shift</h3>
-        <div class="grid grid-cols-2 gap-2">
+        <div id="shiftBukaPilih" class="grid grid-cols-2 gap-2">
           <select id="shiftOutlet" class="border rounded-xl px-3 py-2 bg-white"></select>
           <select id="shiftUser" class="border rounded-xl px-3 py-2 bg-white"></select>
         </div>
+        <div id="shiftBukaInfo" class="text-xs text-[#718096] bg-[#f6f7f9] border rounded-xl px-3 py-2" style="display:none"></div>
         <input id="shiftSaldo" type="number" placeholder="Saldo awal kas (Rp)" class="w-full border rounded-xl px-3 py-2">
         <button onclick="bukaShift()" class="w-full bg-[var(--cbm-accent)] text-white py-2 rounded-xl flex items-center justify-center gap-2"><i data-feather="play" class="w-4 h-4"></i> Buka Shift</button>
         <div id="shiftAktifInfo" class="text-xs bg-[#f6f7f9] border p-3 rounded-xl"></div>
       </div>
       <div class="cbm-card p-4 rounded-2xl space-y-3">
         <h3 class="font-semibold flex items-center gap-2"><i data-feather="log-out" class="w-4 h-4"></i> Tutup Shift</h3>
-        <select id="shiftTutupSelect" class="w-full border rounded-xl px-3 py-2 bg-white"></select>
-        <button onclick="tutupShiftTerpilih()" class="w-full bg-slate-900 text-white py-2 rounded-xl flex items-center justify-center gap-2"><i data-feather="power" class="w-4 h-4"></i> Tutup Shift Terpilih</button>
-        <button onclick="tutupShift()" class="w-full border py-2 rounded-xl">Tutup Shift Saya (Outlet Aktif)</button>
+        <select id="shiftTutupSelect" onchange="renderTutupInfo()" class="w-full border rounded-xl px-3 py-2 bg-white"></select>
+        <div id="tutupInfo" class="text-xs bg-[#f6f7f9] border p-3 rounded-xl space-y-1"></div>
+        <input id="tutupSetoran" type="number" placeholder="Uang yang disetorkan (Rp)" class="w-full border rounded-xl px-3 py-2">
+        <button onclick="tutupShift()" class="w-full bg-slate-900 text-white py-2 rounded-xl flex items-center justify-center gap-2"><i data-feather="power" class="w-4 h-4"></i> Tutup Shift + Simpan Setoran</button>
         <div class="text-xs text-[#718096]">Shift terpisah per outlet & per admin. Transaksi hanya bisa saat shift buka di outlet tersebut.</div>
       </div>
     </div>
     <div class="cbm-card p-4 rounded-2xl mt-4">
       <h3 class="font-semibold mb-2 flex items-center gap-2"><i data-feather="list" class="w-4 h-4"></i> Riwayat Shift Per Toko</h3>
-      <div class="flex gap-2 mb-3"><select id="shiftFilterOutlet" onchange="renderShift()" class="border rounded-xl px-3 py-2"><option value="">Semua Toko</option></select><button onclick="renderShift()" class="border px-3 py-1.5 rounded-xl">Refresh</button></div>
-      <div class="overflow-auto"><table class="w-full text-sm"><thead class="bg-[#f6f7f9]"><tr><th class="p-2 text-left">Shift</th><th>Toko</th><th>Admin</th><th>Buka</th><th>Tutup</th><th>Transaksi</th><th>Omzet</th><th>Status</th></tr></thead><tbody id="shiftTabel"></tbody></table></div>
+      <div id="shiftFilterRow" class="flex gap-2 mb-3"><select id="shiftFilterOutlet" onchange="renderShift()" class="border rounded-xl px-3 py-2"><option value="">Semua Toko</option></select><button onclick="renderShift()" class="border px-3 py-1.5 rounded-xl">Refresh</button></div>
+      <div class="overflow-auto"><table class="w-full text-sm"><thead class="bg-[#f6f7f9]"><tr><th class="p-2 text-left">Shift</th><th>Toko</th><th>Admin</th><th>Buka</th><th>Tutup</th><th>Transaksi</th><th>Omzet</th><th>Setoran</th><th>Selisih</th><th>Status</th></tr></thead><tbody id="shiftTabel"></tbody></table></div>
     </div>
   </section>
 
@@ -327,6 +348,29 @@
       </div>
     </div>
     <div class="cbm-card p-4 rounded-2xl mt-4">
+      <h3 class="font-semibold flex items-center gap-2"><i data-feather="image" class="w-4 h-4"></i> Logo, Sosmed & Ucapan Struk</h3>
+      <p class="text-xs text-[#718096]">Tampil di struk browser & thermal (logo gambar hanya di browser print). Tersimpan otomatis di perangkat ini.</p>
+      <div class="flex items-center gap-3 mt-2">
+        <img id="tokoLogoPrev" class="hidden w-16 h-16 object-contain border rounded-xl bg-white">
+        <div class="flex-1 space-y-2">
+          <input type="file" id="tokoLogoFile" accept="image/*" onchange="uploadLogo(this)" class="w-full text-xs">
+          <button onclick="hapusLogo()" class="border px-3 py-1.5 rounded-xl text-xs">Hapus Logo</button>
+        </div>
+      </div>
+      <div class="grid md:grid-cols-3 gap-2 mt-2">
+        <input id="tokoWA" placeholder="WA, mis. 0857-xxxx-xxxx" class="border rounded-xl px-3 py-2 text-sm">
+        <input id="tokoIG" placeholder="Instagram, mis. @aliyaherba" class="border rounded-xl px-3 py-2 text-sm">
+        <input id="tokoFB" placeholder="Facebook / TikTok" class="border rounded-xl px-3 py-2 text-sm">
+      </div>
+      <input id="tokoHead" placeholder="Pesan header struk (mis. Promo: ...)" class="w-full border rounded-xl px-3 py-2 text-sm mt-2">
+      <input id="tokoFoot" placeholder="Ucapan footer (mis. Terima kasih sudah berbelanja)" class="w-full border rounded-xl px-3 py-2 text-sm mt-2">
+      <div class="flex flex-wrap items-center gap-2 mt-2">
+        <label class="flex gap-2 text-sm"><input type="checkbox" id="optBarcode" checked> Barcode no. struk</label>
+        <button onclick="simpanStrukCfg()" class="bg-[var(--cbm-accent)] text-white px-4 py-2 rounded-xl text-sm">Simpan</button>
+        <button onclick="testPrint()" class="border px-4 py-2 rounded-xl text-sm">Test Print</button>
+      </div>
+    </div>
+    <div class="cbm-card p-4 rounded-2xl mt-4">
       <h3 class="font-semibold flex items-center gap-2"><i data-feather="layers" class="w-4 h-4"></i> Kelola Kategori — Auto Tambah</h3>
       <p class="text-xs text-[#718096]">Kategori otomatis bertambah saat input produk baru. Bisa tambah manual di sini.</p>
       <div class="flex gap-2 mt-2"><input id="kategoriBaru" placeholder="Nama kategori baru" class="flex-1 border rounded-xl px-3 py-2"><button onclick="tambahKategori()" class="bg-[var(--cbm-accent)] text-white px-4 rounded-xl">Tambah</button></div>
@@ -343,6 +387,8 @@
         <div class="cbm-card p-4 rounded-2xl">
           <h3 class="font-semibold flex items-center gap-2"><i data-feather="percent" class="w-4 h-4"></i> Pajak & Promo</h3>
           <label class="flex items-center gap-2 text-sm mt-2"><input type="checkbox" id="settingPpn" onchange="togglePpnSetting(this.checked)"> Aktifkan PPN 11% default di Kasir</label>
+          <label class="flex items-center gap-2 text-sm mt-2">Biaya QRIS (%) <input id="settingQris" type="number" min="0" max="10" step="0.1" value="1" onchange="simpanQrisSetting(this.value)" class="border rounded-xl px-3 py-1.5 w-[90px] text-sm"></label>
+          <p class="text-[11px] text-[#718096]">Ditambahkan ke total saat bayar pakai QRIS</p>
           <div class="mt-3 flex gap-2">
             <button onclick="document.querySelector('[data-page=promo]').click()" class="flex-1 border px-3 py-2 rounded-xl text-sm flex items-center justify-center gap-1"><i data-feather="tag" class="w-4 h-4"></i> Kelola Promo</button>
             <button onclick="openPromoModal()" class="flex-1 bg-[var(--cbm-accent)] text-white px-3 py-2 rounded-xl text-sm">+ Promo Baru</button>
@@ -439,7 +485,7 @@
 <dialog id="modalBulkProduk" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulkProduk(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Tambah Produk</h3><p class="text-xs text-[#718096]">Satu produk per baris (bisa paste dari Excel):<br><code>Nama | HPP | Harga | Kategori(opsional)</code> — pisah Tab / | / ;<br>Contoh:<br>Madu Baru | 45000 | 65000 | Madu</p><textarea id="bulkProdukText" rows="8" placeholder="Madu Baru | 45000 | 65000 | Madu&#10;Teh Baru | 12000 | 18000" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Tambah Semua</button><button type="button" onclick="modalBulkProduk.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div><div class="text-xs text-[#718096]">Stok awal 0 di toko aktif • nama duplikat dilewati • ID/barcode otomatis</div></form></dialog>
 <dialog id="modalBulkBeli" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulkBeli(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Pembelian Stok</h3><p class="text-xs text-[#718096]">Satu baris per produk: <code>kode qty hpp(opsional)</code> — kode = barcode/SKU/ID/nama. Supplier + Batch + EXP diambil dari form di atas.<br>Contoh:<br>8992000001 10 84000<br>GM002 5</p><textarea id="bulkBeliText" rows="8" placeholder="8992000001 10 84000&#10;GM002 5" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Terima Semua</button><button type="button" onclick="modalBulkBeli.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div></form></dialog>
 <dialog id="modalPrinter" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><div class="p-4 space-y-2"><h3 class="font-bold flex items-center gap-2"><i data-feather="printer" class="w-4 h-4"></i> Printer</h3><div id="printPreview" class="border p-3 text-xs bg-white"></div><div class="flex gap-2"><button onclick="window.print()" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Print</button><button onclick="modalPrinter.close()" class="flex-1 border py-2 rounded-xl">Tutup</button></div></div></dialog>
-<div id="struk-area" class="hidden bg-white p-3 w-[58mm] text-[11px] leading-tight"><div class="text-center border-b border-dashed pb-2 mb-2"><div id="strukToko" class="font-bold"></div><div id="strukAlamat" class="text-[10px]"></div></div><div id="strukBody"></div><div class="text-center mt-2 border-t border-dashed pt-2">Terima kasih <br><svg id="strukBarcode" class="mx-auto mt-1"></svg></div></div>
+<div id="struk-area" class="hidden bg-white p-3 w-[58mm] text-[11px] leading-tight"><div class="text-center border-b border-dashed pb-2 mb-2"><img id="strukLogo" class="hidden mx-auto mb-1 max-h-[60px]"><div id="strukToko" class="font-bold"></div><div id="strukAlamat" class="text-[10px]"></div><div id="strukSosmed" class="text-[10px]"></div><div id="strukHead" class="text-[10px] font-semibold"></div></div><div id="strukBody"></div><div class="text-center mt-2 border-t border-dashed pt-2"><div id="strukFoot">Terima kasih sudah berbelanja</div><svg id="strukBarcode" class="mx-auto mt-1"></svg></div></div>
 <script src="js/config.js?v=v31"></script>
 <script src="js/db.js?v=v31"></script>
 <script src="js/supabase.js?v=v31"></script>

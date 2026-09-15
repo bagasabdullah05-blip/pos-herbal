@@ -1,4 +1,4 @@
-const LS={produk:'herbal_produk',member:'herbal_member',trx:'herbal_trx',sup:'herbal_sup',beli:'herbal_beli',op:'herbal_op',promo:'herbal_promo',outlet:'herbal_outlet',users:'herbal_users',curOut:'herbal_curOut',curUser:'herbal_curUser',nota:'herbal_nota',curNota:'herbal_curNota',shift:'herbal_shift',mLevel:'herbal_mLevel',kategori:'herbal_kategori',ppn:'herbal_ppn'};
+const LS={produk:'herbal_produk',member:'herbal_member',trx:'herbal_trx',sup:'herbal_sup',beli:'herbal_beli',op:'herbal_op',promo:'herbal_promo',outlet:'herbal_outlet',users:'herbal_users',curOut:'herbal_curOut',curUser:'herbal_curUser',nota:'herbal_nota',curNota:'herbal_curNota',shift:'herbal_shift',mLevel:'herbal_mLevel',kategori:'herbal_kategori',ppn:'herbal_ppn',struk:'herbal_struk',qris:'herbal_qris'};
 let produk=[],member=[],trx=[],supplier=[],pembelian=[],opname=[],promo=[],outlets=[],users=[],notas=[],shifts=[],memberLevels=[],kategoriList=[],cart=[],pay='Tunai';
 let currentOutlet='OUT001', currentUser=null, currentNotaId=null;
 window.getCurrentUser=()=>currentUser;
@@ -157,8 +157,34 @@ async function loadData(){
   // SKU profesional: ensure each produk has SKU = KAT-BARCODE, referral code for member
   produk.forEach(p=>{ if(!p.sku) p.sku=(p.kategori.slice(0,3).toUpperCase()+'-'+p.barcode).replace(/\s/g,''); });
   member.forEach(m=>{ if(!m.referral) m.referral='REF'+m.id.slice(-3)+Math.floor(100+Math.random()*900); if(!m.sku) m.sku=m.id; });
+  loadStrukCfg();
   saveAll();
 }
+// Pengaturan kop struk (logo, sosmed, ucapan) — tersimpan persisten
+function strukCfg(){ try{ return JSON.parse(localStorage.getItem(LS.struk)||'{}'); }catch{ return {}; } }
+function strukVal(id,key,def){ const v=((document.getElementById(id)?.value)||'').trim(); if(v) return v; return strukCfg()[key]||def||''; }
+function loadStrukCfg(){
+  const c=strukCfg(); if(!c || !Object.keys(c).length) return;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el&&v!=null) el.value=v; };
+  set('tokoNama',c.nama); set('tokoAlamat',c.alamat); set('tokoWA',c.wa); set('tokoIG',c.ig); set('tokoFB',c.fb); set('tokoHead',c.head); set('tokoFoot',c.foot);
+  const cb=document.getElementById('optBarcode'); if(cb&&c.showBarcode===false) cb.checked=false;
+  const pv=document.getElementById('tokoLogoPrev'); if(pv&&c.logo){ pv.src=c.logo; pv.classList.remove('hidden'); }
+}
+function simpanStrukCfg(silent){
+  const pv=document.getElementById('tokoLogoPrev');
+  const c={nama:strukVal('tokoNama','nama',''),alamat:strukVal('tokoAlamat','alamat',''),wa:strukVal('tokoWA','wa',''),ig:strukVal('tokoIG','ig',''),fb:strukVal('tokoFB','fb',''),head:strukVal('tokoHead','head',''),foot:strukVal('tokoFoot','foot','Terima kasih sudah berbelanja'),logo:(pv&&!pv.classList.contains('hidden')&&pv.src)||'',showBarcode:document.getElementById('optBarcode')?.checked!==false};
+  localStorage.setItem(LS.struk,JSON.stringify(c));
+  if(!silent) alert('Pengaturan struk disimpan');
+}
+function uploadLogo(input){
+  const f=input.files&&input.files[0]; if(!f) return;
+  if(f.size>400*1024) return alert('Maksimal 400KB agar tersimpan aman');
+  const r=new FileReader();
+  r.onload=()=>{ const pv=document.getElementById('tokoLogoPrev'); if(pv){ pv.src=r.result; pv.classList.remove('hidden'); } simpanStrukCfg(true); };
+  r.readAsDataURL(f); input.value='';
+}
+function hapusLogo(){ const pv=document.getElementById('tokoLogoPrev'); if(pv){ pv.removeAttribute('src'); pv.classList.add('hidden'); } simpanStrukCfg(true); }
+function escTxt(s){ return String(s||'').replace(/½/g,'1/2').replace(/¼/g,'1/4').replace(/[^\x20-\x7E\n]/g,''); }
 function genNotaId(){ const d=new Date(); return 'NT-'+d.toISOString().slice(0,10).replace(/-/g,'')+'-'+String(Date.now()).slice(-4); }
 function syncNota(){ const n=notas.find(x=>x.id===currentNotaId); if(n){ n.cart=[...cart]; n.member=document.getElementById('pilihMember')?.value||null; n.waktu=new Date().toISOString(); } saveAll(); renderNota(); }
 function buatNotaBaru(){ const id=genNotaId(); notas.unshift({id,waktu:new Date().toISOString(),outlet:currentOutlet,member:null,cart:[],status:'draft'}); currentNotaId=id; cart=notas.find(n=>n.id===id).cart; saveAll(); renderAll(); }
@@ -376,12 +402,17 @@ function hitung(){
   }
   let ppn=0;
   if(document.getElementById('ppnAktif')?.checked) ppn=Math.round((sub-disc-promoPot)*0.11);
-  const tot=Math.max(0, sub-disc-promoPot+ppn);
+  const qpct=pay==='QRIS'?qrisPct():0;
+  const qrisFee=qpct>0?Math.round((sub-disc-promoPot+ppn)*qpct/100):0;
+  const tot=Math.max(0, sub-disc-promoPot+ppn+qrisFee);
   document.getElementById('subtotal').textContent=rupiah(sub);
   document.getElementById('diskonRp').textContent='- '+rupiah(disc);
   document.getElementById('labelDiskon').textContent=discPct?`(${discPct}%)`:'';
   document.getElementById('promoRp').textContent='- '+rupiah(promoPot);
   const ppnEl=document.getElementById('ppnRp'); if(ppnEl) ppnEl.textContent=rupiah(ppn);
+  const qfRow=document.getElementById('qrisFeeRow'); if(qfRow) qfRow.classList.toggle('hidden', !(pay==='QRIS'&&qrisFee>0));
+  const qfRp=document.getElementById('qrisFeeRp'); if(qfRp) qfRp.textContent=rupiah(qrisFee);
+  const qfLb=document.getElementById('qrisFeeLabel'); if(qfLb) qfLb.textContent=`Biaya QRIS (${qpct}%)`;
   document.getElementById('total').textContent=rupiah(tot);
   const promoInfo=document.getElementById('promoInfo');
   if(promoInfo){
@@ -401,7 +432,7 @@ function hitung(){
   const ts=document.getElementById('totalBar'); if(ts) ts.textContent=rupiah(tot);
   const tq=document.getElementById('totalBarQty'); if(tq) tq.textContent=cart.reduce((s,it)=>s+it.qty,0);
   const tp=document.getElementById('totalBarPay'); if(tp) tp.textContent=pay;
-  return {sub,disc,promoPot,ppn,tot};
+  return {sub,disc,promoPot,ppn,tot,qrisFee};
 }
 function bayarFocus(){ const b=document.getElementById('bayar'); if(!b) return; b.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>{ try{b.focus({preventScroll:true})}catch{ b.focus(); } },350); }
 function setPay(v){
@@ -417,7 +448,7 @@ function bayarSekarang(){
   if(!currentUser) return modalLogin.showModal();
   if(!getShiftAktif(currentOutlet)) return alert('Shift belum dibuka untuk toko '+ (outlets.find(o=>o.id===currentOutlet)?.nama||currentOutlet) +'. Buka shift dulu di menu Shift.');
   if(cart.length===0) return alert('Keranjang kosong');
-  const {tot,sub,disc,promoPot,ppn}=hitung();
+  const {tot,sub,disc,promoPot,ppn,qrisFee}=hitung();
   let bayar=Number(document.getElementById('bayar').value||0);
   if(pay==='Split') bayar=Number(document.getElementById('splitTunai').value||0)+Number(document.getElementById('splitTransfer').value||0);
   if(pay!=='QRIS' && bayar < tot) return alert('Bayar kurang');
@@ -427,7 +458,7 @@ function bayarSekarang(){
   const idTrx='TRX-'+currentOutlet+'-'+Date.now().toString().slice(-6);
   const labaKotor=cart.reduce((s,it)=>s+(it.harga-(it.hpp||0))*it.qty,0)-disc-promoPot;
   const shiftAktif=getShiftAktif(currentOutlet);
-  const rec={id:idTrx,waktu:new Date().toISOString(),outlet:currentOutlet,kasir:currentUser?.nama||'?',shiftId:shiftAktif?.id||null,cart:[...cart],sub,disc,promoPot,ppn,pay,bayar,total:tot,kembalian:Math.max(0,bayar-tot),member:mid||null, laba: labaKotor, hppTotal: cart.reduce((s,it)=>s+(it.hpp||0)*it.qty,0) };
+  const rec={id:idTrx,waktu:new Date().toISOString(),outlet:currentOutlet,kasir:currentUser?.nama||'?',shiftId:shiftAktif?.id||null,cart:[...cart],sub,disc,promoPot,ppn,pay,bayar,total:tot,qrisFee:qrisFee||0,splitTunai:pay==='Split'?Number(document.getElementById('splitTunai').value||0):0,splitTransfer:pay==='Split'?Number(document.getElementById('splitTransfer').value||0):0,kembalian:Math.max(0,bayar-tot),member:mid||null, laba: labaKotor, hppTotal: cart.reduce((s,it)=>s+(it.hpp||0)*it.qty,0) };
   // kartu stok log
   rec.cart.forEach(it=> pembelian.push({waktu:rec.waktu, produk:it.id, qty:-it.qty, ket:'Jual '+idTrx, batch:produk.find(p=>p.id===it.id)?.batch||''}));
   trx.unshift(rec);
@@ -444,8 +475,18 @@ function bayarSekarang(){
   alert('Transaksi '+idTrx+' berhasil — Nota baru '+newId+' siap');
 }
 function cetakStruk(r){
-  document.getElementById('strukToko').textContent=document.getElementById('tokoNama').value;
-  document.getElementById('strukAlamat').textContent=document.getElementById('tokoAlamat').value;
+  const cfg=strukCfg();
+  const nama=strukVal('tokoNama','nama','TOKO HERBAL');
+  const alamat=strukVal('tokoAlamat','alamat','');
+  const wa=strukVal('tokoWA','wa',''); const ig=strukVal('tokoIG','ig',''); const fb=strukVal('tokoFB','fb','');
+  const head=strukVal('tokoHead','head',''); const foot=strukVal('tokoFoot','foot','Terima kasih sudah berbelanja');
+  const pv=document.getElementById('tokoLogoPrev');
+  const logo=(pv&&!pv.classList.contains('hidden')&&pv.src)||cfg.logo||'';
+  const sl=document.getElementById('strukLogo'); if(sl){ if(logo){ sl.src=logo; sl.classList.remove('hidden'); } else sl.classList.add('hidden'); }
+  document.getElementById('strukToko').textContent=nama;
+  document.getElementById('strukAlamat').textContent=alamat;
+  document.getElementById('strukSosmed').textContent=[wa&&('WA: '+wa),ig&&('IG: '+ig),fb&&('FB: '+fb)].filter(Boolean).join(' • ');
+  document.getElementById('strukHead').textContent=head;
   const m=member.find(x=>x.id===r.member);
   document.getElementById('strukBody').innerHTML=`
     <div>No: ${r.id} • ${new Date(r.waktu).toLocaleString('id-ID')}</div>
@@ -458,11 +499,15 @@ function cetakStruk(r){
     ${r.disc?`<div class="flex justify-between"><span>Diskon</span><span>- ${rupiah(r.disc)}</span></div>`:''}
     ${r.promoPot?`<div class="flex justify-between"><span>Promo</span><span>- ${rupiah(r.promoPot)}</span></div>`:''}
     ${r.ppn?`<div class="flex justify-between"><span>PPN 11%</span><span>${rupiah(r.ppn)}</span></div>`:''}
+    ${r.qrisFee?`<div class="flex justify-between"><span>Biaya QRIS</span><span>${rupiah(r.qrisFee)}</span></div>`:''}
     <div class="flex justify-between font-bold"><span>Total</span><span>${rupiah(r.total)}</span></div>
     <div class="flex justify-between"><span>Bayar</span><span>${rupiah(r.bayar)}</span></div>
     <div class="flex justify-between"><span>Kembali</span><span>${rupiah(r.kembalian)}</span></div>
   `;
-  try{ JsBarcode("#strukBarcode", r.id, {height:30, width:1.2, fontSize:10}); }catch{}
+  document.getElementById('strukFoot').textContent=strukVal('tokoFoot','foot','Terima kasih sudah berbelanja');
+  const showBc=document.getElementById('optBarcode')?.checked!==false;
+  const bc=document.getElementById('strukBarcode'); if(bc){ bc.style.display=showBc?'':'none'; }
+  if(showBc){ try{ JsBarcode("#strukBarcode", r.id, {height:30, width:1.2, fontSize:10}); }catch{} }
   const w=document.getElementById('paperSize').value;
   document.getElementById('struk-area').style.width=w+'mm';
   document.getElementById('struk-area').classList.remove('hidden');
@@ -492,12 +537,16 @@ async function printESC(r){
   const enc=new TextEncoder();
   let data=[];
   const add=t=> data.push(...enc.encode(t+'\n'));
-  add(document.getElementById('tokoNama').value); add(document.getElementById('tokoAlamat').value);
+  const nama=strukVal('tokoNama','nama','TOKO HERBAL');
+  const alamat=strukVal('tokoAlamat','alamat','');
+  const sos=[strukVal('tokoWA','wa','')&&('WA: '+strukVal('tokoWA','wa','')),strukVal('tokoIG','ig','')&&('IG: '+strukVal('tokoIG','ig','')),strukVal('tokoFB','fb','')&&('FB: '+strukVal('tokoFB','fb',''))].filter(Boolean).join(' | ');
+  const head=strukVal('tokoHead','head',''); const foot=strukVal('tokoFoot','foot','Terima kasih sudah berbelanja');
+  add(escTxt(nama)); if(alamat) add(escTxt(alamat)); if(sos) add(escTxt(sos)); if(head) add(escTxt(head));
   add('No: '+r.id); add(new Date(r.waktu).toLocaleString('id-ID'));
   add('----------------');
   r.cart.forEach(it=> add(it.nama+' x'+it.qty+' '+rupiah(it.harga*it.qty)));
-  add('----------------'); add('Total '+rupiah(r.total)); add('Bayar '+rupiah(r.bayar)); add('Kembali '+rupiah(r.kembalian));
-  add('Terima kasih');
+  add('----------------'); if(r.qrisFee) add('Biaya QRIS '+rupiah(r.qrisFee)); add('Total '+rupiah(r.total)); add('Bayar '+rupiah(r.bayar)); add('Kembali '+rupiah(r.kembalian));
+  add(escTxt(foot));
   const bytes=new Uint8Array([...data, 0x0A,0x0A, 0x1D,0x56,0x00]); // cut
   if(document.getElementById('optDrawer').checked) bytes.set([0x1B,0x70,0x00,0x32,0xFF], bytes.length-5);
   try{
@@ -513,7 +562,7 @@ function bukaLaci(){
   if(printerDevice||printerPort) printESC({id:'DRAWER',waktu:new Date().toISOString(),cart:[],sub:0,disc:0,promoPot:0,total:0,bayar:0,kembalian:0,pay:'Tunai',member:null});
   else alert('Hubungkan printer ESC/POS dulu atau laci dibuka manual');
 }
-function openPrinterModal(){ document.getElementById('modalPrinter').showModal(); document.getElementById('printPreview').innerHTML=document.getElementById('strukBody').innerHTML||'Preview struk akan tampil setelah transaksi'; }
+function openPrinterModal(){ document.getElementById('modalPrinter').showModal(); document.getElementById('printPreview').innerHTML=document.getElementById('struk-area')?.innerHTML||'Preview struk akan tampil setelah transaksi'; }
 
 // Barcode
 function generateBarcode(){
@@ -689,10 +738,18 @@ function renderMemberLevels(){
     selP.innerHTML='<option value="">Semua Level</option>'+opts;
     selP.value=cur;
   }
-  // ppn setting sync
+  // ppn + qris setting sync
   const ppnVal=localStorage.getItem(LS.ppn);
   const sEl=document.getElementById('settingPpn'); if(sEl) sEl.checked=ppnVal==='true';
   const kEl=document.getElementById('ppnAktif'); if(kEl && ppnVal!==null) kEl.checked=ppnVal==='true';
+  const qEl=document.getElementById('settingQris'); if(qEl) qEl.value=qrisPct();
+}
+function qrisPct(){ const v=parseFloat(localStorage.getItem(LS.qris)); return isNaN(v)?1:Math.max(0,v); }
+function simpanQrisSetting(v){
+  const n=Math.max(0,parseFloat(v)||0);
+  localStorage.setItem(LS.qris,String(n));
+  const el=document.getElementById('settingQris'); if(el) el.value=n;
+  hitung();
 }
 function togglePpnSetting(v){
   localStorage.setItem(LS.ppn, String(v));
@@ -864,6 +921,53 @@ function prosesBulkBeli(e){
   saveAll(); document.getElementById('modalBulkBeli')?.close(); renderAll();
   if(fail.length) alert('OK '+ok+' • Gagal: '+fail.join(', '));
 }
+// Pembelian: draft multi produk (klik/stepper) -> terima semua
+let beliDraft=[];
+function beliPickRender(){
+  const box=document.getElementById('beliPickList'); if(!box) return;
+  const q=(document.getElementById('beliPickCari')?.value||'').toLowerCase().trim();
+  if(q.length<2){ box.innerHTML='<div class="text-xs text-[#718096] p-2">Ketik min. 2 huruf untuk cari produk…</div>'; return; }
+  const all=produk.filter(p=>p.nama.toLowerCase().includes(q)||(p.barcode||'').includes(q)||p.id.toLowerCase().includes(q)||(p.sku||'').toLowerCase().includes(q));
+  const list=all.slice(0,30);
+  box.innerHTML=list.map(p=>{ const d=beliDraft.find(x=>x.produk===p.id);
+    return `<div class="flex items-center gap-2 p-1.5 hover:bg-[#f6f7f9] rounded-lg text-sm"><button onclick="beliDraftAdd('${p.id}')" class="w-7 h-7 border rounded-lg bg-white font-bold">+</button><span class="flex-1">${p.nama}<span class="text-xs text-[#718096]"> • Stok ${getStok(p)}</span></span>${d?`<span class="text-xs font-bold text-[var(--cbm-accent)]">draft: ${d.qty}</span>`:''}</div>`; }).join('')||'<div class="text-xs text-[#718096] p-2">Tidak ketemu</div>';
+}
+function beliDraftAdd(pid){
+  if(!needAdmin('pembelian')) return;
+  const p=produk.find(x=>x.id===pid); if(!p) return;
+  const d=beliDraft.find(x=>x.produk===pid);
+  if(d) d.qty++;
+  else beliDraft.push({produk:pid, qty:1, hpp:p.hpp||0});
+  renderBeliDraft(); beliPickRender();
+}
+function beliDraftQty(i,d){
+  const r=beliDraft[i]; if(!r) return;
+  r.qty=Math.max(1,(r.qty||1)+d); renderBeliDraft();
+}
+function beliDraftHpp(i,val){ const r=beliDraft[i]; if(r) r.hpp=Number(val)||0; }
+function beliDraftHapus(i){ beliDraft.splice(i,1); renderBeliDraft(); beliPickRender(); }
+function clearBeliDraft(){ beliDraft=[]; renderBeliDraft(); beliPickRender(); }
+function renderBeliDraft(){
+  const body=document.getElementById('beliDraftBody'); if(!body) return;
+  const count=document.getElementById('beliDraftCount'); if(count) count.textContent=beliDraft.length;
+  if(!beliDraft.length) body.innerHTML='<tr><td colspan="4" class="p-4 text-center text-[#718096]">Draft kosong — cari produk di atas lalu klik +</td></tr>';
+  else body.innerHTML=beliDraft.map((d,i)=>{
+    const p=produk.find(x=>x.id===d.produk);
+    return `<tr class="border-t"><td class="p-2"><div class="font-medium">${p?p.nama:d.produk}</div><div class="text-xs text-[#718096]">${p?p.sku:''} • Stok sistem ${p?getStok(p):0}</div></td><td class="p-2"><div class="flex items-center gap-1"><button onclick="beliDraftQty(${i},-1)" class="w-7 h-7 border rounded-lg bg-white">-</button><span class="w-8 text-center font-bold">${d.qty}</span><button onclick="beliDraftQty(${i},1)" class="w-7 h-7 border rounded-lg bg-white">+</button></div></td><td class="p-2"><input type="number" value="${d.hpp||''}" placeholder="HPP" onchange="beliDraftHpp(${i},this.value)" class="beliDraftHpp w-[100px] border rounded-lg px-2 py-1 text-right" data-i="${i}"></td><td class="p-2 text-center"><button onclick="beliDraftHapus(${i})" class="text-red-500">×</button></td></tr>`;
+  }).join('');
+}
+function terimaBeliDraft(){
+  if(!needAdmin('pembelian')) return;
+  if(!beliDraft.length) return alert('Draft kosong');
+  document.querySelectorAll('.beliDraftHpp').forEach(el=>{ const i=+el.dataset.i; if(beliDraft[i]) beliDraft[i].hpp=Number(el.value)||0; });
+  const sup=document.getElementById('beliSupplier').value;
+  const batch=document.getElementById('beliBatch').value;
+  const exp=document.getElementById('beliExp').value;
+  let ok=0;
+  beliDraft.forEach(d=>{ if(terimaBarang(sup,d.produk,d.qty,batch,exp,d.hpp)) ok++; });
+  beliDraft=[]; saveAll(); renderAll(); renderBeliDraft(); beliPickRender();
+  alert('Pembelian multi berhasil: '+ok+' produk');
+}
 function renderPembelian(){
   const q=(document.getElementById('cariBeli')?.value||'').toLowerCase();
   const list=pembelian.filter(r=>{ if(!q) return true; const p=produk.find(x=>x.id===r.produk); const s=supplier.find(x=>x.id===r.supplier); return ((p?p.nama:r.produk)+' '+(s?s.nama:'')+' '+(r.batch||'')+' '+(r.ket||'')).toLowerCase().includes(q); });
@@ -916,6 +1020,25 @@ function prosesOpnameBulk(){
   renderOpnameDraft();
   if(fail.length) alert('OK '+ok+' • Gagal: '+fail.join(', '));
 }
+// Opname: pilih multi produk (centang, tampil stok sistem) -> masuk draft
+function renderOpPick(){
+  const box=document.getElementById('opPickList'); if(!box) return;
+  const keep=new Set([...document.querySelectorAll('.opPickCheck:checked')].map(c=>c.value));
+  const q=(document.getElementById('opPickCari')?.value||'').toLowerCase().trim();
+  const all=produk.filter(p=>!q||p.nama.toLowerCase().includes(q)||(p.barcode||'').includes(q)||p.id.toLowerCase().includes(q)||(p.sku||'').toLowerCase().includes(q));
+  const list=all.slice(0,100);
+  box.innerHTML=list.map(p=>`<label class="flex items-center gap-2 p-1.5 hover:bg-[#f6f7f9] rounded-lg cursor-pointer text-sm"><input type="checkbox" value="${p.id}" class="opPickCheck"${keep.has(p.id)?' checked':''}> <span class="flex-1">${p.nama}<span class="text-xs text-[#718096]"> • ${p.sku||p.id}</span></span><b>Sistem: ${getStok(p)}</b></label>`).join('')||'<div class="text-xs text-[#718096] p-2">Ketik untuk cari produk…</div>';
+  const more=document.getElementById('opPickMore'); if(more) more.textContent=all.length>list.length?`+${all.length-list.length} lagi — persempit pencarian`:'';
+}
+function opPickKeDraft(){
+  if(!needAdmin('opname')) return;
+  const checks=[...document.querySelectorAll('.opPickCheck:checked')];
+  if(!checks.length) return alert('Centang dulu produknya');
+  let n=0;
+  checks.forEach(c=>{ if(opnameDraft.some(d=>d.produk===c.value)) return; const p=produk.find(x=>x.id===c.value); if(!p) return; tambahOpnameKeDraft(p.id, getStok(p)); n++; });
+  checks.forEach(c=>c.checked=false);
+  if(n===0) alert('Semua yang dicentang sudah ada di draft');
+}
 function openOpnameScanner(){
   // reuse scanner but handler khusus opname: scan -> tambah draft dengan prompt fisik
   openScanner();
@@ -957,6 +1080,7 @@ function renderOpnameDraft(){
 }
 function renderOpname(){
   renderOpnameDraft();
+  renderOpPick();
   document.getElementById('opLog').innerHTML=pagerSlice('oplog',opname).map(o=>{
     const p=produk.find(x=>x.id===o.produk);
     return `<div class="border-b py-1 flex justify-between text-xs"><span>${new Date(o.waktu).toLocaleString('id-ID')} • ${p?p.nama:o.produk} • Sistem ${o.sistem} → Fisik ${o.fisik} (${o.selisih>0?'+':''}${o.selisih})</span><span class="${o.selisih!==0?'text-red-600':'text-[#718096]'}">${o.selisih===0?'OK':'Selisih'}</span></div>`;
@@ -1298,9 +1422,10 @@ function returTransaksiPrompt(){ if(!needAdmin('retur')) return;
 }
 function getShiftAktif(outletId){ return shifts.find(s=> s.outlet===outletId && s.status==='buka'); }
 function bukaShift(){ if(!needAdmin('shift')) return;
-  const outletId=document.getElementById('shiftOutlet')?.value || currentOutlet;
+  const isOwner=currentUser?.role==='Owner';
+  const outletId=isOwner?(document.getElementById('shiftOutlet')?.value || currentOutlet):currentOutlet;
   if(!canAccessOutlet(currentUser,outletId)) return alert('Akses toko ditolak');
-  const userId=document.getElementById('shiftUser')?.value || currentUser?.id;
+  const userId=isOwner?(document.getElementById('shiftUser')?.value || currentUser?.id):currentUser?.id;
   if(!userId) return alert('Pilih admin');
   if(getShiftAktif(outletId)) return alert('Shift sudah buka di toko ini. Tutup dulu.');
   const saldo=Number(document.getElementById('shiftSaldo')?.value||0);
@@ -1309,31 +1434,81 @@ function bukaShift(){ if(!needAdmin('shift')) return;
   shifts.unshift({id,outlet:outletId,user:userId,userNama:user?.nama||'',buka:new Date().toISOString(),tutup:null,saldoAwal:saldo,total:0,transaksi:0,omzet:0,status:'buka'});
   saveAll(); renderShift(); alert('Shift dibuka: '+id+' • '+outlets.find(o=>o.id===outletId)?.nama);
 }
-function tutupShift(){
-  // tutup shift aktif di outlet saat ini oleh user saat ini
-  const outletId=currentOutlet;
-  const shift=getShiftAktif(outletId);
-  if(!shift) return alert('Tidak ada shift buka di toko '+outlets.find(o=>o.id===outletId)?.nama);
-  if(shift.user!==currentUser?.id && currentUser?.role!=='Owner' && currentUser?.role!=='Spv') return alert('Hanya admin shift atau Owner/SPV yang bisa tutup');
-  const related=trx.filter(t=> t.outlet===outletId && t.waktu >= shift.buka);
-  const omzet=related.reduce((s,t)=>s+t.total,0);
-  shift.tutup=new Date().toISOString(); shift.status='tutup'; shift.omzet=omzet; shift.transaksi=related.length;
-  saveAll(); renderShift(); alert('Shift ditutup: '+shift.id+' • Omzet '+rupiah(omzet)+' • '+related.length+' trx');
+function shiftPaySummary(shift){
+  const rel=trx.filter(t=>t.outlet===shift.outlet && t.waktu>=shift.buka);
+  const s={n:rel.length,omzet:0,tunai:0,transfer:0,qris:0,split:0,splitTunai:0};
+  rel.forEach(t=>{ s.omzet+=t.total||0;
+    if(t.pay==='Tunai') s.tunai+=t.total||0;
+    else if(t.pay==='Transfer') s.transfer+=t.total||0;
+    else if(t.pay==='QRIS') s.qris+=t.total||0;
+    else if(t.pay==='Split'){ s.split+=t.total||0; s.splitTunai+=Number(t.splitTunai||0); }
+  });
+  s.expected=s.tunai+s.splitTunai;
+  return s;
 }
-function tutupShiftTerpilih(){ if(!needAdmin('shift')) return;
-  const id=document.getElementById('shiftTutupSelect')?.value; if(!id) return alert('Pilih shift');
-  const shift=shifts.find(s=>s.id===id); if(!shift || shift.status!=='buka') return alert('Shift tidak ditemukan / sudah tutup');
-  const related=trx.filter(t=> t.outlet===shift.outlet && t.waktu >= shift.buka);
-  shift.tutup=new Date().toISOString(); shift.status='tutup'; shift.omzet=related.reduce((s,t)=>s+t.total,0); shift.transaksi=related.length;
-  saveAll(); renderShift(); alert('Shift '+id+' ditutup');
+function renderTutupInfo(){
+  const box=document.getElementById('tutupInfo'); if(!box) return;
+  const id=document.getElementById('shiftTutupSelect')?.value;
+  const shift=shifts.find(s=>s.id===id);
+  if(!shift||shift.status!=='buka'){ box.innerHTML='<span class="text-[#718096]">Pilih shift buka untuk tutup.</span>'; return; }
+  const s=shiftPaySummary(shift);
+  box.innerHTML=`<div class="grid grid-cols-2 gap-1">
+    <span>Omzet</span><b class="text-right">${rupiah(s.omzet)}</b>
+    <span>Tunai</span><span class="text-right">${rupiah(s.tunai)}</span>
+    <span>Transfer</span><span class="text-right">${rupiah(s.transfer)}</span>
+    <span>QRIS</span><span class="text-right">${rupiah(s.qris)}</span>
+    <span>Split (tunai ${rupiah(s.splitTunai)})</span><span class="text-right">${rupiah(s.split)}</span>
+    <span class="font-bold">Kas Tunai harapan</span><b class="text-right text-[var(--cbm-accent)]">${rupiah(s.expected)}</b>
+  </div><div class="text-[11px] text-[#718096] mt-1">Setoran = penjualan Tunai (+ porsi tunai Split). QRIS/Transfer tidak disetor tunai.</div>`;
+}
+function tutupShift(){ if(!needAdmin('shift')) return;
+  const id=document.getElementById('shiftTutupSelect')?.value;
+  const shift=shifts.find(s=>s.id===id);
+  if(!shift||shift.status!=='buka') return alert('Pilih shift buka dulu');
+  if(shift.user!==currentUser?.id && currentUser?.role!=='Owner' && currentUser?.role!=='Spv') return alert('Hanya admin shift atau Owner/SPV yang bisa tutup');
+  const s=shiftPaySummary(shift);
+  const raw=((document.getElementById('tutupSetoran')?.value)||'').trim();
+  if(raw==='') return alert('Isi dulu uang yang disetorkan (Rp)');
+  const setor=Number(raw); if(isNaN(setor)||setor<0) return alert('Nominal setoran tidak valid');
+  const selisih=setor-s.expected;
+  if(selisih!==0 && !confirm('Setoran '+rupiah(setor)+' selisih '+rupiah(selisih)+' dari kas Tunai '+rupiah(s.expected)+'. Tetap tutup shift?')) return;
+  shift.tutup=new Date().toISOString(); shift.status='tutup';
+  shift.omzet=s.omzet; shift.transaksi=s.n;
+  shift.tunaiOmzet=s.tunai; shift.transferOmzet=s.transfer; shift.qrisOmzet=s.qris; shift.splitOmzet=s.split;
+  shift.expected=s.expected; shift.setoran=setor; shift.selisih=selisih;
+  const inp=document.getElementById('tutupSetoran'); if(inp) inp.value='';
+  saveAll(); renderAll();
+  alert('Shift ditutup: '+shift.id+' • Setoran '+rupiah(setor)+(selisih?(' • Selisih '+rupiah(selisih)):' • Pas'));
 }
 function renderShift(){
   const mo=myOutlets();
+  const isOwner=currentUser?.role==='Owner';
+  const boxPilih=document.getElementById('shiftBukaPilih'); if(boxPilih) boxPilih.style.display=isOwner?'':'none';
+  const infoBuka=document.getElementById('shiftBukaInfo');
+  if(infoBuka){
+    if(isOwner) infoBuka.style.display='none';
+    else { infoBuka.style.display=''; infoBuka.innerHTML=`Toko: <b>${outlets.find(o=>o.id===currentOutlet)?.nama||currentOutlet}</b> • Admin: <b>${currentUser?.nama||''} (${currentUser?.role||''})</b> — shift otomatis ikut akun ini.`; }
+  }
   const selO=document.getElementById('shiftOutlet'); if(selO) selO.innerHTML=mo.map(o=>`<option value="${o.id}">${o.nama}</option>`).join('');
   const selU=document.getElementById('shiftUser'); if(selU) selU.innerHTML=users.map(u=>`<option value="${u.id}">${u.nama} (${u.role})</option>`).join('');
-  const selT=document.getElementById('shiftTutupSelect'); if(selT) selT.innerHTML=shifts.filter(s=>s.status==='buka' && canAccessOutlet(currentUser,s.outlet)).map(s=>`<option value="${s.id}">${s.id} • ${outlets.find(o=>o.id===s.outlet)?.nama} • ${s.userNama}</option>`).join('') || '<option value="">Tidak ada shift buka</option>';
-  const selF=document.getElementById('shiftFilterOutlet'); if(selF) selF.innerHTML='<option value="">Semua Toko</option>'+mo.map(o=>`<option value="${o.id}">${o.nama}</option>`).join('');
+  const selT=document.getElementById('shiftTutupSelect');
+  if(selT){
+    const prev=selT.value;
+    selT.innerHTML=shifts.filter(s=>s.status==='buka' && canAccessOutlet(currentUser,s.outlet)).map(s=>`<option value="${s.id}">${s.id} • ${outlets.find(o=>o.id===s.outlet)?.nama} • ${s.userNama}</option>`).join('') || '<option value="">Tidak ada shift buka</option>';
+    const mine=getShiftAktif(currentOutlet);
+    if([...selT.options].some(o=>o.value===prev)) selT.value=prev;
+    else if(mine && [...selT.options].some(o=>o.value===mine.id)) selT.value=mine.id;
+  }
+  const selF=document.getElementById('shiftFilterOutlet');
+  if(selF){
+    const prevF=selF.value;
+    selF.innerHTML=(isOwner?'<option value="">Semua Toko</option>':'')+mo.map(o=>`<option value="${o.id}">${o.nama}</option>`).join('');
+    if([...selF.options].some(o=>o.value===prevF)) selF.value=prevF;
+    else if(!isOwner&&mo.length) selF.value=mo.some(o=>o.id===currentOutlet)?currentOutlet:mo[0].id;
+  }
+  const rowF=document.getElementById('shiftFilterRow'); if(rowF) rowF.style.display=(!isOwner&&mo.length<=1)?'none':'';
   const filter=document.getElementById('shiftFilterOutlet')?.value;
+  renderTutupInfo();
   let list=shifts; if(filter) list=shifts.filter(s=>s.outlet===filter);
   const info=document.getElementById('shiftAktifInfo');
   if(info){
@@ -1342,7 +1517,7 @@ function renderShift(){
     else info.innerHTML=aktif.map(s=>`<div class="flex justify-between"><span>${s.id} • ${outlets.find(o=>o.id===s.outlet)?.nama} • ${s.userNama} • buka ${new Date(s.buka).toLocaleString('id-ID')}</span><span class="text-[var(--cbm-accent)]">BUKA</span></div>`).join('');
   }
   const tb=document.getElementById('shiftTabel');
-  if(tb) tb.innerHTML=list.slice(0,100).map(s=>`<tr class="border-t"><td class="p-2 font-mono text-xs">${s.id}</td><td class="p-2">${outlets.find(o=>o.id===s.outlet)?.nama||s.outlet}</td><td class="p-2">${s.userNama}</td><td class="p-2 text-xs">${new Date(s.buka).toLocaleString('id-ID')}</td><td class="p-2 text-xs">${s.tutup? new Date(s.tutup).toLocaleString('id-ID'):'-'}</td><td class="p-2 text-center">${s.transaksi||0}</td><td class="p-2 text-right">${rupiah(s.omzet||0)}</td><td class="p-2 text-center"><span class="px-2 py-0.5 rounded-full text-xs ${s.status==='buka'?'bg-[var(--cbm-accent-soft)] text-[var(--cbm-accent)]':'bg-slate-100 text-slate-500'}">${s.status}</span></td></tr>`).join('') || '<tr><td colspan="8" class="p-6 text-center text-[#718096]">Belum ada shift</td></tr>';
+  if(tb) tb.innerHTML=list.slice(0,100).map(s=>`<tr class="border-t"><td class="p-2 font-mono text-xs">${s.id}</td><td class="p-2">${outlets.find(o=>o.id===s.outlet)?.nama||s.outlet}</td><td class="p-2">${s.userNama}</td><td class="p-2 text-xs">${new Date(s.buka).toLocaleString('id-ID')}</td><td class="p-2 text-xs">${s.tutup? new Date(s.tutup).toLocaleString('id-ID'):'-'}</td><td class="p-2 text-center">${s.transaksi||0}</td><td class="p-2 text-right">${rupiah(s.omzet||0)}</td><td class="p-2 text-right">${s.setoran!=null?rupiah(s.setoran):'-'}</td><td class="p-2 text-center ${s.selisih?'text-red-600 font-bold':''}">${s.setoran==null?'-':(s.selisih===0?'Pas':((s.selisih>0?'+':'')+rupiah(s.selisih)))}</td><td class="p-2 text-center"><span class="px-2 py-0.5 rounded-full text-xs ${s.status==='buka'?'bg-[var(--cbm-accent-soft)] text-[var(--cbm-accent)]':'bg-slate-100 text-slate-500'}">${s.status}</span></td></tr>`).join('') || '<tr><td colspan="10" class="p-6 text-center text-[#718096]">Belum ada shift</td></tr>';
   refreshIcons();
 }
 function exportData(){
@@ -1463,6 +1638,12 @@ function updateLoginUser(){
   else if(opts.some(o=>o.id===prev)) sel.value=prev;
   applyTheme(sel.value);
 }
+function ingatkanShift(){
+  if(!currentUser) return;
+  if(getShiftAktif(currentOutlet)) return;
+  document.querySelector('[data-page="shift"]')?.click();
+  setTimeout(()=>alert('Shift belum dibuka di '+(outlets.find(o=>o.id===currentOutlet)?.nama||currentOutlet)+'. Buka shift dulu agar bisa transaksi.'),400);
+}
 function login(e){
   e.preventDefault();
   const outletId=document.getElementById('loginOutlet')?.value || currentOutlet;
@@ -1475,6 +1656,7 @@ function login(e){
   ensureNotaDraft();
   saveAll(); renderAll(); applyPrivileges();
   if(currentUser.role==='Kasir'){ document.querySelector('[data-page="kasir"]')?.click(); }
+  ingatkanShift();
   modalLogin.close();
 }
 function logout(){
@@ -1575,4 +1757,4 @@ function simpanUser(e){
 }
 
 function renderAll(){ renderOutlet(); renderUsers(); renderMemberLevels(); renderKategoriSelects(); renderNota(); renderProdukGrid(); renderMemberSelect(); renderCart(); renderTabelProduk(); renderTabelMember(); renderSupplier(); renderPembelian(); renderStok(); renderOpname(); renderPromo(); renderLaporan(); renderShift(); refreshIcons(); setTimeout(()=>{ const c=document.getElementById('cari'); if(c && !document.getElementById('page-kasir').classList.contains('hidden')) c.focus(); },120); if(!currentUser) setTimeout(()=>{ try{modalLogin.showModal()}catch{} },500); }
-loadData().then(renderAll);
+loadData().then(()=>{ renderAll(); ingatkanShift(); });

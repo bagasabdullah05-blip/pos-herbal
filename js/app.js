@@ -35,7 +35,7 @@ function getStok(p){
   return (p.outlet && p.outlet!==currentOutlet) ? 0 : (p.stok||0);
 }
 function setStok(p,n){ if(!p.stokByOutlet) p.stokByOutlet={}; p.stokByOutlet[currentOutlet]=n; p.stok=n; return n; }
-const PAGER={kasir:{page:0,per:24},produk:{page:0,per:15},member:{page:0,per:15},supplier:{page:0,per:15},beli:{page:0,per:15},oplog:{page:0,per:15}};
+const PAGER={kasir:{page:0,per:9},produk:{page:0,per:15},member:{page:0,per:15},supplier:{page:0,per:15},beli:{page:0,per:15},oplog:{page:0,per:15}};
 function pagerSlice(key,arr){ const pg=PAGER[key]; const pages=Math.max(1,Math.ceil(arr.length/pg.per)); if(pg.page>pages-1) pg.page=pages-1; if(pg.page<0) pg.page=0; return arr.slice(pg.page*pg.per,pg.page*pg.per+pg.per); }
 function pagerHTML(key,total){
   const pg=PAGER[key]; const pages=Math.max(1,Math.ceil(total/pg.per)); if(pg.page>pages-1) pg.page=pages-1; if(pg.page<0) pg.page=0;
@@ -210,11 +210,15 @@ function saveAll(){
 }
 
 // Render
+let _soldCache={n:-1,map:{}};
+function soldQtyMap(){ if(_soldCache.n===trx.length) return _soldCache.map; const m={}; listTrxOutlet().forEach(t=>(t.cart||[]).forEach(it=>{ m[it.id]=(m[it.id]||0)+it.qty; })); _soldCache={n:trx.length,map:m}; return m; }
 function renderProdukGrid(){
   const q=(document.getElementById('cari').value||'').toLowerCase();
   const kat=document.getElementById('filterKat').value;
-  let list=[...produk].sort((a,b)=> new Date(a.exp)-new Date(b.exp));
+  const sold=soldQtyMap();
+  let list=[...produk].sort((a,b)=> ((sold[b.id]||0)-(sold[a.id]||0)) || (new Date(a.exp)-new Date(b.exp)) || String(a.nama).localeCompare(String(b.nama)));
   list=list.filter(p=>{ const s=getStok(p); return s>0 && (!kat||p.kategori===kat) && (!q|| p.nama.toLowerCase().includes(q)||p.barcode.includes(q)||p.id.toLowerCase().includes(q)); });
+  if(!q && !kat) list=list.slice(0,9);
   const gp=document.getElementById('gridPager'); if(gp) gp.innerHTML=pagerHTML('kasir',list.length);
   document.getElementById('gridProduk').innerHTML=pagerSlice('kasir',list).map(p=>{
     const s=getStok(p);
@@ -388,9 +392,9 @@ function hitung(){
   }
   const info=document.getElementById('infoMember');
   if(m){ info.innerHTML=`Member ${m.level} • Diskon ${m.diskon}% • Poin ${m.poin} • Ref: <b>${m.referral}</b> <button onclick="copyReferral('${m.referral}')" class="border px-1 rounded">copy</button>`; info.classList.remove('hidden'); } else info.classList.add('hidden');
-  const ts=document.getElementById('totalSticky'); if(ts) ts.textContent=rupiah(tot);
-  const tq=document.getElementById('totalStickyQty'); if(tq) tq.textContent=cart.reduce((s,it)=>s+it.qty,0);
-  const tp=document.getElementById('totalStickyPay'); if(tp) tp.textContent=pay;
+  const ts=document.getElementById('totalBar'); if(ts) ts.textContent=rupiah(tot);
+  const tq=document.getElementById('totalBarQty'); if(tq) tq.textContent=cart.reduce((s,it)=>s+it.qty,0);
+  const tp=document.getElementById('totalBarPay'); if(tp) tp.textContent=pay;
   return {sub,disc,promoPot,ppn,tot};
 }
 function bayarFocus(){ const b=document.getElementById('bayar'); if(!b) return; b.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>{ try{b.focus({preventScroll:true})}catch{ b.focus(); } },350); }

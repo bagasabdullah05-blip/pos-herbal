@@ -891,84 +891,43 @@ function terimaBarang(sup,pid,qty,batch,exp,hpp){
   const rec={waktu:new Date().toISOString(), supplier:sup, produk:pid, qty, batch, exp, hpp, outlet:currentOutlet, ket:'Beli'};
   pembelian.unshift(rec); return rec;
 }
-function tambahPembelian(){ if(!needAdmin('pembelian')) return;
-  const sup=document.getElementById('beliSupplier').value;
-  const pid=document.getElementById('beliProduk').value;
-  const qty=Number(document.getElementById('beliQty').value);
-  const batch=document.getElementById('beliBatch').value;
-  const exp=document.getElementById('beliExp').value;
-  const hpp=Number(document.getElementById('beliHpp').value);
-  if(!pid||!qty) return alert('Lengkapi');
-  terimaBarang(sup,pid,qty,batch,exp,hpp); saveAll(); renderAll();
-  document.getElementById('beliQty').value=''; document.getElementById('beliBatch').value='';
+// Pembelian Multi — form multi-baris: pilih produk dari master, isi qty+hpp, terima sekaligus
+function beliRowAdd(pid, qty, hpp){
+  if(!hasPriv('pembelian')) return;
+  const box=document.getElementById('beliRows'); if(!box) return;
+  const div=document.createElement('div');
+  div.className='beliRow bg-white border rounded-xl p-2 space-y-1';
+  div.innerHTML=`<div class="grid grid-cols-[1fr_80px_100px_32px] gap-2 items-center"><select onchange="beliRowInfo(this)" class="beliRowProduk border rounded-xl px-2 py-2 text-sm min-w-0">${produkOptions(pid||'')}</select><input type="number" placeholder="Qty" value="${qty??''}" class="beliRowQty border rounded-xl px-2 py-2 text-sm text-center"><input type="number" placeholder="HPP" value="${hpp??''}" class="beliRowHpp border rounded-xl px-2 py-2 text-sm text-right"><button onclick="this.closest('.beliRow').remove()" class="text-red-500 font-bold">×</button></div><div class="text-xs text-[#718096] beliRowStok">${pid&&produk.find(x=>x.id===pid)?('Stok sistem: '+getStok(produk.find(x=>x.id===pid))):''}</div>`;
+  box.appendChild(div);
 }
-function openBulkBeliModal(){ if(!needAdmin('pembelian')) return; renderNota(); document.getElementById('modalBulkBeli')?.showModal(); }
-function prosesBulkBeli(e){
-  e.preventDefault(); if(!needAdmin('pembelian')) return;
-  const sup=document.getElementById('beliSupplier').value;
-  const batch=document.getElementById('beliBatch').value;
-  const exp=document.getElementById('beliExp').value;
-  const txt=document.getElementById('bulkBeliText').value.trim(); if(!txt) return;
-  const lines=txt.split(/\n/).map(s=>s.trim()).filter(Boolean);
-  let ok=0, fail=[];
-  lines.forEach(line=>{
-    const parts=line.split(/[\s,;]+/); const code=parts[0]; const qty=Number(parts[1]||0); const hpp=Number((parts[2]||'').replace(/\D/g,''))||0;
-    const p=produk.find(x=> x.id===code || x.sku===code || x.barcode===code || x.nama.toLowerCase()===code.toLowerCase());
-    if(!p||!qty) { fail.push(line); return; }
-    terimaBarang(sup,p.id,qty,batch,exp,hpp); ok++;
-  });
-  document.getElementById('bulkBeliText').value='';
-  saveAll(); document.getElementById('modalBulkBeli')?.close(); renderAll();
-  if(fail.length) alert('OK '+ok+' • Gagal: '+fail.join(', '));
+function beliRowInfo(sel){
+  const row=sel.closest('.beliRow'); const p=produk.find(x=>x.id===sel.value);
+  let el=row?row.querySelector('.beliRowStok'):null;
+  if(el) el.textContent=p?('Stok: '+getStok(p)):'';
 }
-// Pembelian: draft multi produk (klik/stepper) -> terima semua
-let beliDraft=[];
-function beliPickRender(){
-  const box=document.getElementById('beliPickList'); if(!box) return;
-  const q=(document.getElementById('beliPickCari')?.value||'').toLowerCase().trim();
-  if(q.length<2){ box.innerHTML='<div class="text-xs text-[#718096] p-2">Ketik min. 2 huruf untuk cari produk…</div>'; return; }
-  const all=produk.filter(p=>p.nama.toLowerCase().includes(q)||(p.barcode||'').includes(q)||p.id.toLowerCase().includes(q)||(p.sku||'').toLowerCase().includes(q));
-  const list=all.slice(0,30);
-  box.innerHTML=list.map(p=>{ const d=beliDraft.find(x=>x.produk===p.id);
-    return `<div class="flex items-center gap-2 p-1.5 hover:bg-[#f6f7f9] rounded-lg text-sm"><button onclick="beliDraftAdd('${p.id}')" class="w-7 h-7 border rounded-lg bg-white font-bold">+</button><span class="flex-1">${p.nama}<span class="text-xs text-[#718096]"> • Stok ${getStok(p)}</span></span>${d?`<span class="text-xs font-bold text-[var(--cbm-accent)]">draft: ${d.qty}</span>`:''}</div>`; }).join('')||'<div class="text-xs text-[#718096] p-2">Tidak ketemu</div>';
-}
-function beliDraftAdd(pid){
+function beliRowsReset(){ const box=document.getElementById('beliRows'); if(!box||!hasPriv('pembelian')) return; box.innerHTML=''; for(let i=0;i<3;i++) beliRowAdd(); }
+function terimaBeliRows(){
   if(!needAdmin('pembelian')) return;
-  const p=produk.find(x=>x.id===pid); if(!p) return;
-  const d=beliDraft.find(x=>x.produk===pid);
-  if(d) d.qty++;
-  else beliDraft.push({produk:pid, qty:1, hpp:p.hpp||0});
-  renderBeliDraft(); beliPickRender();
-}
-function beliDraftQty(i,d){
-  const r=beliDraft[i]; if(!r) return;
-  r.qty=Math.max(1,(r.qty||1)+d); renderBeliDraft();
-}
-function beliDraftHpp(i,val){ const r=beliDraft[i]; if(r) r.hpp=Number(val)||0; }
-function beliDraftHapus(i){ beliDraft.splice(i,1); renderBeliDraft(); beliPickRender(); }
-function clearBeliDraft(){ beliDraft=[]; renderBeliDraft(); beliPickRender(); }
-function renderBeliDraft(){
-  const body=document.getElementById('beliDraftBody'); if(!body) return;
-  const count=document.getElementById('beliDraftCount'); if(count) count.textContent=beliDraft.length;
-  if(!beliDraft.length) body.innerHTML='<tr><td colspan="4" class="p-4 text-center text-[#718096]">Draft kosong — cari produk di atas lalu klik +</td></tr>';
-  else body.innerHTML=beliDraft.map((d,i)=>{
-    const p=produk.find(x=>x.id===d.produk);
-    return `<tr class="border-t"><td class="p-2"><div class="font-medium">${p?p.nama:d.produk}</div><div class="text-xs text-[#718096]">${p?p.sku:''} • Stok sistem ${p?getStok(p):0}</div></td><td class="p-2"><div class="flex items-center gap-1"><button onclick="beliDraftQty(${i},-1)" class="w-7 h-7 border rounded-lg bg-white">-</button><span class="w-8 text-center font-bold">${d.qty}</span><button onclick="beliDraftQty(${i},1)" class="w-7 h-7 border rounded-lg bg-white">+</button></div></td><td class="p-2"><input type="number" value="${d.hpp||''}" placeholder="HPP" onchange="beliDraftHpp(${i},this.value)" class="beliDraftHpp w-[100px] border rounded-lg px-2 py-1 text-right" data-i="${i}"></td><td class="p-2 text-center"><button onclick="beliDraftHapus(${i})" class="text-red-500">×</button></td></tr>`;
-  }).join('');
-}
-function terimaBeliDraft(){
-  if(!needAdmin('pembelian')) return;
-  if(!beliDraft.length) return alert('Draft kosong');
-  document.querySelectorAll('.beliDraftHpp').forEach(el=>{ const i=+el.dataset.i; if(beliDraft[i]) beliDraft[i].hpp=Number(el.value)||0; });
+  const rows=[...document.querySelectorAll('#beliRows .beliRow')];
   const sup=document.getElementById('beliSupplier').value;
   const batch=document.getElementById('beliBatch').value;
   const exp=document.getElementById('beliExp').value;
+  const vals=[];
+  for(const r of rows){
+    const pid=r.querySelector('.beliRowProduk').value;
+    if(!pid) continue;
+    const qty=Number(r.querySelector('.beliRowQty').value);
+    if(!qty) return alert('Isi qty untuk semua baris yang sudah pilih produk');
+    vals.push({pid,qty,hpp:Number(r.querySelector('.beliRowHpp').value)||0});
+  }
+  if(!vals.length) return alert('Isi dulu minimal 1 baris');
   let ok=0;
-  beliDraft.forEach(d=>{ if(terimaBarang(sup,d.produk,d.qty,batch,exp,d.hpp)) ok++; });
-  beliDraft=[]; saveAll(); renderAll(); renderBeliDraft(); beliPickRender();
+  vals.forEach(v=>{ if(terimaBarang(sup,v.pid,v.qty,batch,exp,v.hpp)) ok++; });
+  saveAll(); renderAll(); beliRowsReset();
   alert('Pembelian multi berhasil: '+ok+' produk');
 }
 function renderPembelian(){
+  const rb=document.getElementById('beliRows'); if(rb&&!rb.children.length){ for(let i=0;i<3;i++) beliRowAdd(); }
   const q=(document.getElementById('cariBeli')?.value||'').toLowerCase();
   const list=pembelian.filter(r=>{ if(!q) return true; const p=produk.find(x=>x.id===r.produk); const s=supplier.find(x=>x.id===r.supplier); return ((p?p.nama:r.produk)+' '+(s?s.nama:'')+' '+(r.batch||'')+' '+(r.ket||'')).toLowerCase().includes(q); });
   document.getElementById('riwayatBeli').innerHTML=pagerSlice('beli',list).map(r=>{
@@ -978,66 +937,48 @@ function renderPembelian(){
   const pg=document.getElementById('pagerBeli'); if(pg) pg.innerHTML=pagerHTML('beli',list.length);
 }
 
-// Opname Multi
-let opnameDraft=[];
-function simpanOpname(){ if(!needAdmin('opname')) return;
-  const pid=document.getElementById('opProduk').value; const fisik=Number(document.getElementById('opFisik').value);
-  if(!pid||isNaN(fisik)) return alert('Pilih produk & isi fisik');
-  tambahOpnameKeDraft(pid, fisik); document.getElementById('opFisik').value='';
+// Opname Multi — form multi-baris: pilih produk dari master, isi fisik, simpan sekaligus
+function produkOptions(selected){
+  return '<option value="">— Pilih produk —</option>'+produk.map(p=>`<option value="${p.id}"${p.id===selected?' selected':''}>${p.nama}</option>`).join('');
 }
-function tambahOpnameKeDraft(pid, fisik){
-  const p=produk.find(x=>x.id===pid); if(!p) return;
-  const exist=opnameDraft.find(d=>d.produk===pid);
-  if(exist) exist.fisik=fisik;
-  else opnameDraft.push({produk:pid, sistem:getStok(p), fisik, selisih:fisik-getStok(p)});
-  renderOpnameDraft();
+function opRowAdd(pid, fisik){
+  if(!hasPriv('opname')) return;
+  const box=document.getElementById('opRows'); if(!box) return;
+  const p=pid?produk.find(x=>x.id===pid):null;
+  const div=document.createElement('div');
+  div.className='opRow flex flex-wrap items-center gap-2 bg-white border rounded-xl p-2';
+  div.innerHTML=`<select onchange="opRowSistem(this)" class="opRowProduk flex-1 min-w-[160px] border rounded-xl px-2 py-2 text-sm">${produkOptions(pid||'')}</select><span class="text-xs text-[#718096]">Sistem: <b class="opRowSistem">${p?getStok(p):'-'}</b></span><input type="number" placeholder="Fisik" value="${fisik??''}" class="opRowFisik w-[90px] border rounded-xl px-2 py-2 text-sm"><button onclick="this.closest('.opRow').remove()" class="text-red-500 px-2 font-bold">×</button>`;
+  box.appendChild(div);
+  if(p&&fisik==null){ const inp=div.querySelector('.opRowFisik'); if(inp) inp.focus(); }
 }
-function tambahOpnameDraft(){
-  const pid=document.getElementById('opProduk').value;
-  const fisik=Number(document.getElementById('opFisik').value);
-  if(!pid) return alert('Pilih produk'); if(isNaN(fisik)) return alert('Isi fisik');
-  tambahOpnameKeDraft(pid,fisik); document.getElementById('opFisik').value='';
+function opRowSistem(sel){
+  const row=sel.closest('.opRow'); const p=produk.find(x=>x.id===sel.value);
+  const el=row?row.querySelector('.opRowSistem'):null; if(el) el.textContent=p?getStok(p):'-';
 }
-function hapusOpnameDraft(i){ opnameDraft.splice(i,1); renderOpnameDraft(); }
-function updateOpnameDraftFisik(i,val){
-  const v=Number(val); if(isNaN(v)) return;
-  opnameDraft[i].fisik=v; opnameDraft[i].selisih=v - opnameDraft[i].sistem;
-  renderOpnameDraft();
-}
-function clearOpnameDraft(){ opnameDraft=[]; renderOpnameDraft(); }
-function prosesOpnameBulk(){
-  const txt=document.getElementById('opBulkText').value.trim(); if(!txt) return;
-  const lines=txt.split(/\n/).map(s=>s.trim()).filter(Boolean);
-  let ok=0, fail=[];
-  lines.forEach(line=>{
-    const parts=line.split(/[\s,;]+/); const code=parts[0]; const qty=Number(parts[1]);
-    if(isNaN(qty)) { fail.push(line); return; }
-    const p=produk.find(x=> x.id===code || x.sku===code || x.barcode===code || x.nama.toLowerCase()===code.toLowerCase());
-    if(!p) { fail.push(code); return; }
-    tambahOpnameKeDraft(p.id, qty); ok++;
-  });
-  document.getElementById('opBulkText').value='';
-  renderOpnameDraft();
-  if(fail.length) alert('OK '+ok+' • Gagal: '+fail.join(', '));
-}
-// Opname: pilih multi produk (centang, tampil stok sistem) -> masuk draft
-function renderOpPick(){
-  const box=document.getElementById('opPickList'); if(!box) return;
-  const keep=new Set([...document.querySelectorAll('.opPickCheck:checked')].map(c=>c.value));
-  const q=(document.getElementById('opPickCari')?.value||'').toLowerCase().trim();
-  const all=produk.filter(p=>!q||p.nama.toLowerCase().includes(q)||(p.barcode||'').includes(q)||p.id.toLowerCase().includes(q)||(p.sku||'').toLowerCase().includes(q));
-  const list=all.slice(0,100);
-  box.innerHTML=list.map(p=>`<label class="flex items-center gap-2 p-1.5 hover:bg-[#f6f7f9] rounded-lg cursor-pointer text-sm"><input type="checkbox" value="${p.id}" class="opPickCheck"${keep.has(p.id)?' checked':''}> <span class="flex-1">${p.nama}<span class="text-xs text-[#718096]"> • ${p.sku||p.id}</span></span><b>Sistem: ${getStok(p)}</b></label>`).join('')||'<div class="text-xs text-[#718096] p-2">Ketik untuk cari produk…</div>';
-  const more=document.getElementById('opPickMore'); if(more) more.textContent=all.length>list.length?`+${all.length-list.length} lagi — persempit pencarian`:'';
-}
-function opPickKeDraft(){
+function opRowsReset(){ const box=document.getElementById('opRows'); if(!box||!hasPriv('opname')) return; box.innerHTML=''; for(let i=0;i<3;i++) opRowAdd(); }
+function simpanOpnameRows(){
   if(!needAdmin('opname')) return;
-  const checks=[...document.querySelectorAll('.opPickCheck:checked')];
-  if(!checks.length) return alert('Centang dulu produknya');
-  let n=0;
-  checks.forEach(c=>{ if(opnameDraft.some(d=>d.produk===c.value)) return; const p=produk.find(x=>x.id===c.value); if(!p) return; tambahOpnameKeDraft(p.id, getStok(p)); n++; });
-  checks.forEach(c=>c.checked=false);
-  if(n===0) alert('Semua yang dicentang sudah ada di draft');
+  const rows=[...document.querySelectorAll('#opRows .opRow')];
+  const vals=[];
+  for(const r of rows){
+    const pid=r.querySelector('.opRowProduk').value;
+    if(!pid) continue;
+    const fv=r.querySelector('.opRowFisik').value.trim();
+    if(fv==='') return alert('Isi fisik untuk semua baris yang sudah pilih produk');
+    const fisik=Number(fv); if(isNaN(fisik)) return alert('Fisik harus angka');
+    vals.push({pid,fisik});
+  }
+  if(!vals.length) return alert('Isi dulu minimal 1 baris');
+  const done={}; vals.forEach(v=>done[v.pid]=v.fisik);
+  const waktu=new Date().toISOString(); let n=0;
+  Object.keys(done).forEach(pid=>{
+    const p=produk.find(x=>x.id===pid); if(!p) return;
+    const fisik=done[pid];
+    opname.unshift({waktu, produk:pid, sistem:getStok(p), fisik, selisih:fisik-getStok(p)});
+    setStok(p, fisik); n++;
+  });
+  saveAll(); renderAll(); opRowsReset();
+  alert('Opname berhasil: '+n+' produk');
 }
 function openOpnameScanner(){
   // reuse scanner but handler khusus opname: scan -> tambah draft dengan prompt fisik
@@ -1048,39 +989,12 @@ function openOpnameScanner(){
     stopScanner(); document.getElementById('modalScanner').close();
     const p=produk.find(x=> x.barcode===code || x.sku===code || x.id===code);
     if(!p) return alert('Barcode tidak ditemukan: '+code);
-    const fisik=Number(prompt(`Stok fisik untuk ${p.nama} (sistem ${getStok(p)}):`, getStok(p)));
-    if(!isNaN(fisik)) tambahOpnameKeDraft(p.id, fisik);
+    opRowAdd(p.id);
     window.onScanSuccess=orig;
   };
 }
-function simpanOpnameMulti(){
-  if(!needAdmin('opname')) return;
-  if(opnameDraft.length===0) return alert('Draft kosong');
-  const waktu=new Date().toISOString();
-  opnameDraft.forEach(d=>{
-    const p=produk.find(x=>x.id===d.produk); if(!p) return;
-    const selisih=d.fisik - getStok(p);
-    opname.unshift({waktu, produk:d.produk, sistem:getStok(p), fisik:d.fisik, selisih});
-    setStok(p, d.fisik);
-  });
-  opnameDraft=[]; saveAll(); renderAll();
-  alert('Opname multi berhasil: '+opname.length+' riwayat');
-}
-function renderOpnameDraft(){
-  const body=document.getElementById('opDraftBody');
-  const count=document.getElementById('opDraftCount');
-  if(count) count.textContent=opnameDraft.length;
-  if(!body) return;
-  if(opnameDraft.length===0) body.innerHTML='<tr><td colspan="5" class="p-4 text-center text-[#718096]">Draft kosong — tambah produk / scan / bulk paste</td></tr>';
-  else body.innerHTML=opnameDraft.map((d,i)=>{
-    const p=produk.find(x=>x.id===d.produk);
-    return `<tr class="border-t"><td class="p-2"><div class="font-medium">${p?p.nama:d.produk}</div><div class="text-xs text-[#718096]">${p?p.sku:''} • ${p?p.kategori:''}</div></td><td class="p-2 text-center">${d.sistem}</td><td class="p-2"><input type="number" value="${d.fisik}" onchange="updateOpnameDraftFisik(${i},this.value)" class="w-[80px] border rounded-lg px-2 py-1 text-center"></td><td class="p-2 text-center ${d.selisih!==0?'text-red-600 font-bold':''}">${d.selisih>0?'+':''}${d.selisih}</td><td class="p-2 text-center"><button onclick="hapusOpnameDraft(${i})" class="text-red-500">×</button></td></tr>`;
-  }).join('');
-  refreshIcons();
-}
 function renderOpname(){
-  renderOpnameDraft();
-  renderOpPick();
+  const rb=document.getElementById('opRows'); if(rb&&!rb.children.length){ for(let i=0;i<3;i++) opRowAdd(); }
   document.getElementById('opLog').innerHTML=pagerSlice('oplog',opname).map(o=>{
     const p=produk.find(x=>x.id===o.produk);
     return `<div class="border-b py-1 flex justify-between text-xs"><span>${new Date(o.waktu).toLocaleString('id-ID')} • ${p?p.nama:o.produk} • Sistem ${o.sistem} → Fisik ${o.fisik} (${o.selisih>0?'+':''}${o.selisih})</span><span class="${o.selisih!==0?'text-red-600':'text-[#718096]'}">${o.selisih===0?'OK':'Selisih'}</span></div>`;

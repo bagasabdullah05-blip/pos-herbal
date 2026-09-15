@@ -160,21 +160,13 @@
   <section id="page-pembelian" class="page hidden p-4">
     <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="shopping-bag" class="w-5 h-5"></i> Pembelian (PSAK14 Moving Average)</h2>
     <div class="cbm-card p-4 rounded-2xl space-y-3">
-      <div class="grid md:grid-cols-3 gap-2"><select id="beliSupplier" class="px-3 py-2 border rounded-xl"></select><select id="beliProduk" class="px-3 py-2 border rounded-xl"></select><input id="beliQty" type="number" placeholder="Qty" class="px-3 py-2 border rounded-xl"></div>
-      <div class="grid md:grid-cols-3 gap-2"><input id="beliBatch" placeholder="No Batch" class="px-3 py-2 border rounded-xl"><input id="beliExp" type="date" class="px-3 py-2 border rounded-xl"><input id="beliHpp" type="number" placeholder="HPP / modal" class="px-3 py-2 border rounded-xl"></div>
-      <div class="flex flex-wrap gap-2"><button onclick="tambahPembelian()" class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl flex items-center gap-1.5"><i data-feather="plus" class="w-4 h-4"></i> Tambah Stok</button><button onclick="openBulkBeliModal()" class="border px-5 py-2 rounded-xl flex items-center gap-1.5 text-sm"><i data-feather="copy" class="w-4 h-4"></i> Bulk</button><input id="cariBeli" oninput="PAGER.beli.page=0;renderPembelian()" placeholder="Cari riwayat..." class="border rounded-xl px-3 py-2 text-sm flex-1 min-w-[160px]"></div>
+      <div class="grid md:grid-cols-3 gap-2"><select id="beliSupplier" class="px-3 py-2 border rounded-xl"></select><input id="beliBatch" placeholder="No Batch" class="px-3 py-2 border rounded-xl"><input id="beliExp" type="date" class="px-3 py-2 border rounded-xl"></div>
+      <div id="beliRows" class="space-y-2"></div>
+      <div class="flex flex-wrap gap-2"><button onclick="beliRowAdd()" class="border px-4 py-2 rounded-xl text-sm flex items-center gap-1.5"><i data-feather="plus" class="w-4 h-4"></i> Tambah Baris</button><button onclick="terimaBeliRows()" class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl flex items-center gap-1.5 text-sm"><i data-feather="check" class="w-4 h-4"></i> Terima Semua</button></div>
+      <div class="text-xs text-[#718096]">Pilih produk dari data master, isi qty + HPP per baris, terima sekaligus. HPP kosong = ikut HPP lama (moving average).</div>
+      <input id="cariBeli" oninput="PAGER.beli.page=0;renderPembelian()" placeholder="Cari riwayat..." class="border rounded-xl px-3 py-2 text-sm w-full">
       <div id="riwayatBeli" class="text-sm space-y-1 max-h-[300px] overflow-auto border-t pt-3"></div>
       <div id="pagerBeli"></div>
-    </div>
-    <div class="cbm-card p-4 rounded-2xl space-y-3 mt-4">
-      <h3 class="font-semibold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Terima — Multi Produk (klik)</h3>
-      <input id="beliPickCari" oninput="beliPickRender()" placeholder="Ketik min. 2 huruf, klik + untuk masuk draft..." class="w-full border rounded-xl px-3 py-2 text-sm">
-      <div id="beliPickList" class="max-h-[220px] overflow-auto border rounded-xl p-1"><div class="text-xs text-[#718096] p-2">Ketik min. 2 huruf untuk cari produk…</div></div>
-      <div class="border rounded-xl overflow-hidden">
-        <div class="bg-[#f6f7f9] px-3 py-2 flex justify-between items-center"><h3 class="font-semibold text-sm">Draft Terima (<span id="beliDraftCount">0</span> produk)</h3><div class="flex gap-2"><button onclick="clearBeliDraft()" class="text-xs border px-2 py-1 rounded-full">Kosongkan</button><button onclick="terimaBeliDraft()" class="bg-[var(--cbm-accent)] text-white px-4 py-1.5 rounded-xl text-sm">Terima Semua</button></div></div>
-        <table class="w-full text-sm"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Produk</th><th>Qty</th><th>HPP</th><th>Hapus</th></tr></thead><tbody id="beliDraftBody"><tr><td colspan="4" class="p-4 text-center text-[#718096]">Draft kosong — cari produk di atas lalu klik +</td></tr></tbody></table>
-      </div>
-      <div class="text-xs text-[#718096]">Supplier + Batch + EXP diambil dari form di atas. HPP per baris bisa diubah (0 = ikut HPP lama).</div>
     </div>
   </section>
 
@@ -190,36 +182,13 @@
   <section id="page-opname" class="page hidden p-4">
     <h2 class="text-xl font-bold mb-3 flex items-center gap-2"><i data-feather="check-square" class="w-5 h-5"></i> Stok Opname — Multi</h2>
     <div class="cbm-card p-4 rounded-2xl space-y-3">
+      <div id="opRows" class="space-y-2"></div>
       <div class="flex flex-wrap gap-2">
-        <select id="opProduk" class="flex-1 min-w-[180px] border rounded-xl px-3 py-2"></select>
-        <input id="opFisik" type="number" placeholder="Stok fisik" class="border rounded-xl px-3 py-2 w-[130px]">
-        <button onclick="tambahOpnameDraft()" class="bg-[var(--cbm-accent)] text-white px-4 rounded-xl flex items-center gap-1"><i data-feather="plus" class="w-4 h-4"></i> Tambah</button>
-        <button onclick="openOpnameScanner()" class="border px-3 py-2 rounded-xl flex items-center gap-1"><i data-feather="camera" class="w-4 h-4"></i> Scan</button>
+        <button onclick="opRowAdd()" class="border px-4 py-2 rounded-xl text-sm flex items-center gap-1.5"><i data-feather="plus" class="w-4 h-4"></i> Tambah Baris</button>
+        <button onclick="openOpnameScanner()" class="border px-3 py-2 rounded-xl text-sm flex items-center gap-1"><i data-feather="camera" class="w-4 h-4"></i> Scan</button>
+        <button onclick="simpanOpnameRows()" class="bg-[var(--cbm-accent)] text-white px-5 py-2 rounded-xl text-sm flex items-center gap-1.5"><i data-feather="check" class="w-4 h-4"></i> Simpan Semua</button>
       </div>
-      <details class="border rounded-xl">
-        <summary class="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Paste — SKU/barcode + qty per baris</summary>
-        <div class="p-3 space-y-2 border-t">
-          <textarea id="opBulkText" rows="4" placeholder="HB001 45&#10;8990001002 30&#10;HB003,25" class="w-full border rounded-xl p-2 text-sm font-mono"></textarea>
-          <button onclick="prosesOpnameBulk()" class="border px-4 py-1.5 rounded-xl text-sm">Tambah Bulk ke Draft</button>
-          <span class="text-xs text-[#718096]">Format: SKU qty atau barcode qty, pisah spasi/koma</span>
-        </div>
-      </details>
-      <details class="border rounded-xl">
-        <summary class="px-3 py-2 text-sm cursor-pointer flex items-center gap-2"><i data-feather="check-square" class="w-4 h-4"></i> Pilih Multi Produk — centang & masuk draft</summary>
-        <div class="p-3 space-y-2 border-t">
-          <input id="opPickCari" oninput="renderOpPick()" placeholder="Ketik nama / SKU / barcode..." class="w-full border rounded-xl px-3 py-2 text-sm">
-          <div id="opPickList" class="max-h-[220px] overflow-auto border rounded-xl p-1"><div class="text-xs text-[#718096] p-2">Ketik untuk cari produk…</div></div>
-          <div class="flex items-center gap-2"><button onclick="opPickKeDraft()" class="border px-4 py-1.5 rounded-xl text-sm">Masukkan ke Draft</button><span id="opPickMore" class="text-xs text-[#718096]"></span></div>
-        </div>
-      </details>
-      <div class="border rounded-xl overflow-hidden">
-        <div class="bg-[#f6f7f9] px-3 py-2 flex justify-between items-center"><h3 class="font-semibold text-sm">Draft Opname (<span id="opDraftCount">0</span> item)</h3><div class="flex gap-2"><button onclick="clearOpnameDraft()" class="text-xs border px-2 py-1 rounded-full">Kosongkan</button><button onclick="simpanOpnameMulti()" class="bg-[var(--cbm-accent)] text-white px-4 py-1.5 rounded-xl text-sm">Simpan Semua</button></div></div>
-        <table class="w-full text-xs"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Produk / SKU</th><th>Sistem</th><th>Fisik</th><th>Selisih</th><th>Hapus</th></tr></thead><tbody id="opDraftBody"></tbody></table>
-      </div>
-      <div class="flex gap-2 text-xs">
-        <button onclick="simpanOpname()" class="border px-3 py-1.5 rounded-xl hidden">Simpan Single (lama)</button>
-        <span class="text-[#718096]">Tips: scan beruntun langsung masuk draft • Edit fisik langsung di tabel</span>
-      </div>
+      <div class="text-xs text-[#718096]">Pilih produk dari data master, isi fisik per baris, simpan sekaligus. Scan menambah baris otomatis.</div>
       <div class="border-t pt-3">
         <h3 class="font-semibold text-sm mb-2 flex items-center gap-2"><i data-feather="list" class="w-4 h-4"></i> Riwayat Opname</h3>
         <div id="opLog" class="text-sm space-y-1 max-h-[300px] overflow-auto"></div>
@@ -483,7 +452,6 @@
 <dialog id="modalScanner" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><div class="p-4 space-y-3"><h3 class="font-bold flex items-center gap-2"><i data-feather="camera" class="w-4 h-4"></i> Scan Barcode</h3><div id="reader" class="rounded-xl overflow-hidden border"></div><button onclick="stopScanner();modalScanner.close()" class="w-full border py-2 rounded-xl">Tutup</button></div></dialog>
 <dialog id="modalBulk" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulk(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Multi Input by Nota</h3><p class="text-xs text-[#718096]">Paste banyak barcode/SKU per baris: <code>barcode qty</code> atau <code>SKU,qty</code>. Contoh:<br>8990001001 2<br>HB002 1<br>8990001003,3</p><textarea id="bulkText" rows="7" placeholder="8990001001 2&#10;HB002 1&#10;8990001003 3" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Tambah ke Nota</button><button type="button" onclick="modalBulk.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div><div class="text-xs bg-white p-2 rounded-xl">Tips: bisa scan beruntun tanpa tutup modal, atau paste dari Excel. Nota aktif: <b id="bulkNotaId"></b></div></form></dialog>
 <dialog id="modalBulkProduk" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulkProduk(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Tambah Produk</h3><p class="text-xs text-[#718096]">Satu produk per baris (bisa paste dari Excel):<br><code>Nama | HPP | Harga | Kategori(opsional)</code> — pisah Tab / | / ;<br>Contoh:<br>Madu Baru | 45000 | 65000 | Madu</p><textarea id="bulkProdukText" rows="8" placeholder="Madu Baru | 45000 | 65000 | Madu&#10;Teh Baru | 12000 | 18000" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Tambah Semua</button><button type="button" onclick="modalBulkProduk.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div><div class="text-xs text-[#718096]">Stok awal 0 di toko aktif • nama duplikat dilewati • ID/barcode otomatis</div></form></dialog>
-<dialog id="modalBulkBeli" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulkBeli(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Pembelian Stok</h3><p class="text-xs text-[#718096]">Satu baris per produk: <code>kode qty hpp(opsional)</code> — kode = barcode/SKU/ID/nama. Supplier + Batch + EXP diambil dari form di atas.<br>Contoh:<br>8992000001 10 84000<br>GM002 5</p><textarea id="bulkBeliText" rows="8" placeholder="8992000001 10 84000&#10;GM002 5" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Terima Semua</button><button type="button" onclick="modalBulkBeli.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div></form></dialog>
 <dialog id="modalPrinter" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><div class="p-4 space-y-2"><h3 class="font-bold flex items-center gap-2"><i data-feather="printer" class="w-4 h-4"></i> Printer</h3><div id="printPreview" class="border p-3 text-xs bg-white"></div><div class="flex gap-2"><button onclick="window.print()" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Print</button><button onclick="modalPrinter.close()" class="flex-1 border py-2 rounded-xl">Tutup</button></div></div></dialog>
 <div id="struk-area" class="hidden bg-white p-3 w-[58mm] text-[11px] leading-tight"><div class="text-center border-b border-dashed pb-2 mb-2"><img id="strukLogo" class="hidden mx-auto mb-1 max-h-[60px]"><div id="strukToko" class="font-bold"></div><div id="strukAlamat" class="text-[10px]"></div><div id="strukSosmed" class="text-[10px]"></div><div id="strukHead" class="text-[10px] font-semibold"></div></div><div id="strukBody"></div><div class="text-center mt-2 border-t border-dashed pt-2"><div id="strukFoot">Terima kasih sudah berbelanja</div><svg id="strukBarcode" class="mx-auto mt-1"></svg></div></div>
 <script src="js/config.js?v=v31"></script>

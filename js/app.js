@@ -388,8 +388,12 @@ function hitung(){
   }
   const info=document.getElementById('infoMember');
   if(m){ info.innerHTML=`Member ${m.level} • Diskon ${m.diskon}% • Poin ${m.poin} • Ref: <b>${m.referral}</b> <button onclick="copyReferral('${m.referral}')" class="border px-1 rounded">copy</button>`; info.classList.remove('hidden'); } else info.classList.add('hidden');
+  const ts=document.getElementById('totalSticky'); if(ts) ts.textContent=rupiah(tot);
+  const tq=document.getElementById('totalStickyQty'); if(tq) tq.textContent=cart.reduce((s,it)=>s+it.qty,0);
+  const tp=document.getElementById('totalStickyPay'); if(tp) tp.textContent=pay;
   return {sub,disc,promoPot,ppn,tot};
 }
+function bayarFocus(){ const b=document.getElementById('bayar'); if(!b) return; b.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>{ try{b.focus({preventScroll:true})}catch{ b.focus(); } },350); }
 function setPay(v){
   pay=v;
   document.querySelectorAll('.pay-btn').forEach(b=>b.className='pay-btn bg-white border py-2 rounded-xl text-xs');
@@ -397,6 +401,7 @@ function setPay(v){
   document.getElementById(map[v]).className='pay-btn bg-teal-600 text-white py-2 rounded-xl text-xs font-semibold';
   document.getElementById('qrBox').classList.toggle('hidden', v!=='QRIS');
   document.getElementById('splitBox').classList.toggle('hidden', v!=='Split');
+  hitung();
 }
 function bayarSekarang(){
   if(!currentUser) return modalLogin.showModal();
@@ -1180,6 +1185,15 @@ function renderLaporan(){
   }
   const lapProdukCount=document.getElementById('lapProdukCount'); if(lapProdukCount) lapProdukCount.textContent=arr.length+' produk';
   const lapTrxCount=document.getElementById('lapTrxCount'); if(lapTrxCount) lapTrxCount.textContent=list.length+' transaksi • Periode '+(mulai||'-')+' → '+(akhir||'-');
+  // omzet per metode bayar (Tunai / Transfer / QRIS / Split dipisah)
+  const payMap={};
+  list.forEach(t=>{ const k=t.pay||'Tunai'; if(!payMap[k]) payMap[k]={n:0,omzet:0}; payMap[k].n++; payMap[k].omzet+=t.total; });
+  const lapPay=document.getElementById('lapPay');
+  if(lapPay){
+    const order=['Tunai','Transfer','QRIS','Split'];
+    const keys=[...order.filter(k=>payMap[k]), ...Object.keys(payMap).filter(k=>!order.includes(k))];
+    lapPay.innerHTML=keys.length?keys.map(k=>`<div class="bg-[#f6f7f9] border rounded-xl px-3 py-2"><div class="text-xs text-[#718096]">${k} • ${payMap[k].n}x</div><div class="font-bold">${rupiah(payMap[k].omzet)}</div></div>`).join(''):'<div class="text-xs text-[#718096]">Belum ada transaksi</div>';
+  }
   // tabel produk perform
   const tbodyP=document.getElementById('tabelProdukPerform');
   if(tbodyP){
@@ -1230,12 +1244,12 @@ function renderLaporan(){
   refreshIcons();
 }
 function exportExcel(){
-  let csv='Waktu,ID,Outlet,Total,Laba,Margin,Member,Items\n';
+  let csv='Waktu,ID,Outlet,Total,Laba,Margin,Bayar,Member,Items\n';
   const {mulai, akhir}=getLaporanPeriode();
   let list=listTrxOutlet(); if(mulai) list=list.filter(t=>t.waktu.slice(0,10)>=mulai); if(akhir) list=list.filter(t=>t.waktu.slice(0,10)<=akhir);
   list.forEach(t=>{
     const mgn=t.total? ((t.laba||0)/t.total*100).toFixed(1):0;
-    csv+=`"${t.waktu}","${t.id}","${t.outlet}",${t.total},${t.laba||0},${mgn}%,"${member.find(m=>m.id===t.member)?.nama||''}","${t.cart.map(c=>c.nama+' x'+c.qty).join('; ')}"\n`;
+    csv+=`"${t.waktu}","${t.id}","${t.outlet}",${t.total},${t.laba||0},${mgn}%,"${t.pay||''}","${member.find(m=>m.id===t.member)?.nama||''}","${t.cart.map(c=>c.nama+' x'+c.qty).join('; ')}"\n`;
   });
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='laporan-transaksi-'+(mulai||todayISO())+'.csv'; a.click(); URL.revokeObjectURL(url);
 }

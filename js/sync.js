@@ -81,9 +81,21 @@ async function hybridLoadData(){
       if(supCloud !== null){ console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
       if(promoCloud !== null) promo = promoCloud || [];
       if(trxCloud !== null){ trx = trxCloud.map(t=>({id:t.id, waktu:t.waktu, outlet:t.outlet_id, user_id:t.user_id, member:t.member_id, cart:t.cart, subtotal:t.subtotal, diskon:t.diskon, ppn:t.ppn, total:t.total, pay:t.bayar, bayar:t.total, kembalian:0, status:t.status, laba:0})); console.log('[sync] PURE trx', trx.length); }
-      if(beliCloud !== null) pembelian = beliCloud || [];
-      if(opCloud !== null) opname = opCloud || [];
-      if(shiftCloud !== null) shifts = shiftCloud || [];
+      if(beliCloud !== null){
+        if(beliCloud.length===0 && pembelian.length>0){ console.log('[sync] push pembelian', pembelian.length); setTimeout(async()=>{ for(const b of pembelian) await supa.from('pembelian').insert({outlet_id:b.outlet, supplier_id:b.supplier, produk_id:b.produk, qty:b.qty, hpp:b.hpp||0, batch:b.batch||null, exp:b.exp||null, ket:b.ket||'Beli'}).then(()=>{},()=>{}); }, 500); }
+        else if(beliCloud.length) pembelian = beliCloud;
+        else pembelian = beliCloud || [];
+      }
+      if(opCloud !== null){
+        if(opCloud.length===0 && opname.length>0){ console.log('[sync] push opname', opname.length); setTimeout(async()=>{ for(const o of opname) await supa.from('opname').insert({outlet_id:o.outlet||currentOutlet, produk_id:o.produk, sistem:o.sistem, fisik:o.fisik, selisih:o.selisih}).then(()=>{},()=>{}); }, 500); }
+        else if(opCloud.length) opname = opCloud;
+        else opname = opCloud || [];
+      }
+      if(shiftCloud !== null){
+        if(shiftCloud.length===0 && shifts.length>0){ console.log('[sync] push shifts', shifts.length); setTimeout(async()=>{ for(const s of shifts) await supa.from('shifts').upsert({id:s.id, outlet_id:s.outlet, user_id:s.user, buka_at:s.buka, tutup_at:s.tutup, status:s.status, modal_awal:s.saldoAwal||0}, {onConflict:'id'}).then(()=>{},()=>{}); }, 500); }
+        else if(shiftCloud.length) shifts = shiftCloud;
+        else shifts = shiftCloud || [];
+      }
       if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); console.log('[sync] PURE outlets', outlets.length); }
       if(userCloud !== null){ console.log('[sync] PURE users', userCloud.length); users = userCloud; }
       if(katCloud !== null && katCloud.length){ kategoriList = katCloud; }

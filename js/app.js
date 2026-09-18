@@ -1467,6 +1467,30 @@ function renderLaporan(){
   }).sort((a,b)=>b.omzet-a.omzet);
   const tbodyK=document.getElementById('tabelKategori');
   if(tbodyK) tbodyK.innerHTML=katArr.length? katArr.map(k=>`<tr class="border-t"><td class="p-2 font-medium">${k.kategori}</td><td class="p-2 text-center font-semibold">${k.qty}</td><td class="p-2 text-right">${rupiah(k.omzet)}</td><td class="p-2 text-right text-[var(--cbm-accent)]">${rupiah(k.laba)}</td><td class="p-2 text-center"><span class="px-2 py-0.5 rounded-full text-xs ${k.margin>20?'bg-[#ecfdf5] text-[#059669]':'bg-slate-100'}">${k.margin.toFixed(1)}%</span></td><td class="p-2 text-center">${k.turnover.toFixed(2)}x</td></tr>`).join('') : '<tr><td colspan="6" class="p-6 text-center text-[#718096]">Tidak ada data kategori</td></tr>';
+  // laporan opname — nominal
+  const opList=opname.filter(o=> (o.outlet===currentOutlet || !o.outlet) && (!mulai || o.waktu.slice(0,10)>=mulai) && (!akhir || o.waktu.slice(0,10)<=akhir) && (!kategori || (produk.find(p=>p.id===o.produk)?.kategori===kategori)));
+  let opSelisih=0, opNomHpp=0, opNomJual=0;
+  const tbodyOp=document.getElementById('tabelOpnameLap');
+  if(tbodyOp){
+    if(!opList.length) tbodyOp.innerHTML='<tr><td colspan="9" class="p-6 text-center text-[#718096]">Belum ada opname di periode ini</td></tr>';
+    else {
+      tbodyOp.innerHTML=opList.slice(0,200).map(o=>{
+        const p=produk.find(x=>x.id===o.produk);
+        const hpp=p?.hpp||0, harga=p?.harga||0;
+        const sel=o.selisih||0;
+        const nomHpp=sel*hpp, nomJual=sel*harga;
+        opSelisih+=sel; opNomHpp+=nomHpp; opNomJual+=nomJual;
+        return `<tr class="border-t"><td class="p-2"><div class="text-xs text-[#718096]">${new Date(o.waktu).toLocaleString('id-ID')}</div><div class="font-medium">${p?p.nama:o.produk}</div><div class="text-xs text-[#718096]">${p?.sku||''}</div></td><td class="p-2">${p?.kategori||'-'}</td><td class="p-2 text-center">${o.sistem}</td><td class="p-2 text-center">${o.fisik}</td><td class="p-2 text-center ${sel!==0?'text-red-600 font-bold':''}">${sel>0?'+':''}${sel}</td><td class="p-2 text-right">${rupiah(hpp)}</td><td class="p-2 text-right ${nomHpp<0?'text-red-600':''}">${rupiah(nomHpp)}</td><td class="p-2 text-right">${rupiah(harga)}</td><td class="p-2 text-right ${nomJual<0?'text-red-600':''}">${rupiah(nomJual)}</td></tr>`;
+      }).join('');
+      // hitung total untuk yang tidak ditampilkan karena slice? hitung ulang penuh
+      opSelisih=0; opNomHpp=0; opNomJual=0;
+      opList.forEach(o=>{ const p=produk.find(x=>x.id===o.produk); const sel=o.selisih||0; opSelisih+=sel; opNomHpp+=sel*(p?.hpp||0); opNomJual+=sel*(p?.harga||0); });
+    }
+  }
+  const elOpSelisih=document.getElementById('lapOpnameSelisih'); if(elOpSelisih) elOpSelisih.textContent=(opSelisih>0?'+':'')+opSelisih;
+  const elOpHpp=document.getElementById('lapOpnameNominalHpp'); if(elOpHpp) elOpHpp.textContent=rupiah(opNomHpp);
+  const elOpJual=document.getElementById('lapOpnameNominalJual'); if(elOpJual) elOpJual.textContent=rupiah(opNomJual);
+  const elOpCount=document.getElementById('lapOpnameCount'); if(elOpCount) elOpCount.textContent=opList.length+' baris • '+(mulai||'-')+' → '+(akhir||'-');
   // tabel transaksi detail dengan margin
   const count={}; // untuk top
   const tabelLap=document.getElementById('tabelLap');
@@ -1506,8 +1530,21 @@ function exportProdukExcel(){
   });
   const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='laporan-produk-'+(mulai||todayISO())+'.csv'; a.click(); URL.revokeObjectURL(url);
 }
+function exportOpnameExcel(){
+  const {mulai, akhir}=getLaporanPeriode();
+  const kategori=document.getElementById('lapKategori')?.value||'';
+  let list=opname.filter(o=> (o.outlet===currentOutlet || !o.outlet) && (!mulai || o.waktu.slice(0,10)>=mulai) && (!akhir || o.waktu.slice(0,10)<=akhir));
+  if(kategori) list=list.filter(o=> (produk.find(p=>p.id===o.produk)?.kategori===kategori));
+  let csv='Waktu,Produk,SKU,Kategori,Sistem,Fisik,Selisih,HPP,NominalHPP,Harga,NominalJual\n';
+  list.forEach(o=>{
+    const p=produk.find(x=>x.id===o.produk);
+    const hpp=p?.hpp||0, harga=p?.harga||0, sel=o.selisih||0;
+    csv+=`"${o.waktu}","${p?p.nama:o.produk}","${p?.sku||''}","${p?.kategori||''}",${o.sistem},${o.fisik},${sel},${hpp},${sel*hpp},${harga},${sel*harga}\n`;
+  });
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='laporan-opname-'+(mulai||todayISO())+'.csv'; a.click(); URL.revokeObjectURL(url);
+}
 function switchLaporan(tab){
-  ['Ringkasan','Produk','Transaksi','Kategori'].forEach(k=>{
+  ['Ringkasan','Produk','Transaksi','Kategori','Opname'].forEach(k=>{
     const el=document.getElementById('lapSub'+k);
     if(el) el.classList.toggle('hidden', k.toLowerCase()!==tab);
     const btn=document.getElementById('lapTab'+k);

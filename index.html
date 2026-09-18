@@ -227,6 +227,7 @@
       <button onclick="switchLaporan('transaksi')" id="lapTabTransaksi" class="px-3 py-1.5 rounded-lg hover:bg-slate-50">Detail Transaksi</button>
       <button onclick="switchLaporan('produk')" id="lapTabProduk" class="px-3 py-1.5 rounded-lg hover:bg-slate-50">Laporan Produk</button>
       <button onclick="switchLaporan('kategori')" id="lapTabKategori" class="px-3 py-1.5 rounded-lg hover:bg-slate-50">Per Kategori</button>
+      <button onclick="switchLaporan('opname')" id="lapTabOpname" class="px-3 py-1.5 rounded-lg hover:bg-slate-50">Opname</button>
     </div>
     <div id="lapSubRingkasan">
     <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-3">
@@ -270,6 +271,17 @@
     <div class="cbm-card rounded-2xl overflow-auto">
       <div class="p-3 border-b flex items-center gap-2"><h3 class="font-semibold flex items-center gap-2"><i data-feather="layers" class="w-4 h-4"></i> Laporan Per Kategori</h3></div>
       <table class="w-full text-sm"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Kategori</th><th>Terjual</th><th>Omzet</th><th>Laba</th><th>Margin</th><th>Turnover</th></tr></thead><tbody id="tabelKategori"></tbody></table>
+    </div>
+    </div>
+    <div id="lapSubOpname" class="hidden">
+    <div class="cbm-card rounded-2xl overflow-auto">
+      <div class="p-3 border-b flex items-center gap-2"><h3 class="font-semibold flex items-center gap-2"><i data-feather="check-square" class="w-4 h-4"></i> Laporan Opname — Nominal</h3><span id="lapOpnameCount" class="text-xs text-[#718096]"></span><button onclick="exportOpnameExcel()" class="ml-auto border px-3 py-1.5 rounded-xl text-xs flex items-center gap-1"><i data-feather="download" class="w-3 h-3"></i> Excel Opname</button></div>
+      <table class="w-full text-xs"><thead class="bg-[#f6f7f9] text-[#718096]"><tr><th class="p-2 text-left">Waktu • Produk</th><th class="p-2 text-left">Kategori</th><th class="p-2 text-center">Sistem</th><th class="p-2 text-center">Fisik</th><th class="p-2 text-center">Selisih</th><th class="p-2 text-right">HPP</th><th class="p-2 text-right">Nominal HPP</th><th class="p-2 text-right">Harga</th><th class="p-2 text-right">Nominal Jual</th></tr></thead><tbody id="tabelOpnameLap"></tbody></table>
+    </div>
+    <div class="grid grid-cols-3 gap-3 mt-3">
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Total Selisih</div><div id="lapOpnameSelisih" class="font-bold">0</div></div>
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Nominal HPP</div><div id="lapOpnameNominalHpp" class="font-bold text-red-600">Rp 0</div></div>
+      <div class="cbm-card p-3 rounded-2xl"><div class="text-xs text-[#718096]">Nominal Jual</div><div id="lapOpnameNominalJual" class="font-bold text-[var(--cbm-accent)]">Rp 0</div></div>
     </div>
     </div>
   </section>
@@ -395,9 +407,9 @@
           <h3 class="font-semibold flex items-center gap-2"><i data-feather="cloud" class="w-4 h-4"></i> Internet Sync — Supabase (Singapore)</h3>
           <p class="text-xs text-[#718096] mt-1">Agar bisa dibuka dari internet dengan cepat, isi URL & anon key dari Supabase. Data akan sync otomatis, buka offline tetap jalan via cache.</p>
           <div class="space-y-2 mt-3">
-            <input id="supaUrl" placeholder="https://xxxxx.supabase.co" class="w-full border rounded-xl px-3 py-2 text-sm">
-            <input id="supaKey" placeholder="anon key (eyJ...)" class="w-full border rounded-xl px-3 py-2 text-sm">
-            <div class="flex gap-2">
+            <input id="supaUrl" type="hidden">
+            <input id="supaKey" type="hidden">
+            <div class="flex gap-2 hidden">
               <button onclick="saveSupaConfig()" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl text-sm">Simpan & Connect</button>
               <button onclick="testSupa()" class="border px-4 py-2 rounded-xl text-sm">Test</button>
             </div>
@@ -407,7 +419,7 @@
               <button onclick="syncFromSupabase()" class="flex-1 border py-1.5 rounded-full">Download Cloud → Lokal</button>
             </div>
             <button onclick="bersihkanCacheLokal()" class="w-full mt-2 bg-red-50 border border-red-200 text-red-600 py-2 rounded-xl text-xs">🧹 Bersihkan Cache Lokal & Paksa dari Supabase</button>
-            <p class="text-[11px] text-[#718096]">Setup: 1) Buat project di supabase.com (region Singapore), 2) Jalankan <code>supabase/schema.sql</code> di SQL Editor, 3) Paste URL+key di sini.</p>
+            <p class="text-[11px] text-[#718096] hidden">Setup: 1) Buat project di supabase.com (region Singapore), 2) Jalankan <code>supabase/schema.sql</code> di SQL Editor, 3) Paste URL+key di sini.</p>
           </div>
         </div>
       </div>
@@ -476,12 +488,12 @@
 <dialog id="modalBulkProduk" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulkProduk(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Tambah Produk</h3><p class="text-xs text-[#718096]">Satu produk per baris (bisa paste dari Excel):<br><code>Nama | HPP | Harga | Kategori(opsional)</code> — pisah Tab / | / ;<br>Contoh:<br>Madu Baru | 45000 | 65000 | Madu</p><textarea id="bulkProdukText" rows="8" placeholder="Madu Baru | 45000 | 65000 | Madu&#10;Teh Baru | 12000 | 18000" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Tambah Semua</button><button type="button" onclick="modalBulkProduk.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div><div class="text-xs text-[#718096]">Stok awal 0 di toko aktif • nama duplikat dilewati • ID/barcode otomatis</div></form></dialog>
 <dialog id="modalPrinter" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><div class="p-4 space-y-2"><h3 class="font-bold flex items-center gap-2"><i data-feather="printer" class="w-4 h-4"></i> Printer</h3><div id="printPreview" class="border p-3 text-xs bg-white"></div><div class="flex gap-2"><button onclick="window.print()" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Print</button><button onclick="modalPrinter.close()" class="flex-1 border py-2 rounded-xl">Tutup</button></div></div></dialog>
 <div id="struk-area" class="hidden bg-white p-3 w-[58mm] text-[11px] leading-tight"><div class="text-center border-b border-dashed pb-2 mb-2"><img id="strukLogo" class="hidden mx-auto mb-1 max-h-[60px]"><div id="strukToko" class="font-bold"></div><div id="strukAlamat" class="text-[10px]"></div><div id="strukSosmed" class="text-[10px]"></div><div id="strukHead" class="text-[10px] font-semibold"></div></div><div id="strukBody"></div><div class="text-center mt-2 border-t border-dashed pt-2"><div id="strukFoot">Terima kasih sudah berbelanja</div><svg id="strukBarcode" class="mx-auto mt-1"></svg></div></div>
-<script src="js/config.js?v=v42"></script>
-<script src="js/db.js?v=v42"></script>
-<script src="js/supabase.js?v=v42"></script>
+<script src="js/config.js?v=v43"></script>
+<script src="js/db.js?v=v43"></script>
+<script src="js/supabase.js?v=v43"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
-<script src="js/app.js?v=v42"></script>
-<script src="js/sync.js?v=v42"></script>
+<script src="js/app.js?v=v43"></script>
+<script src="js/sync.js?v=v43"></script>
 <script>feather.replace({ 'stroke-width': 1.4 }); document.addEventListener('DOMContentLoaded',()=> feather.replace({ 'stroke-width': 1.4 })); const ro=new MutationObserver(()=>{try{feather.replace({ 'stroke-width': 1.4 })}catch{}}); ro.observe(document.body,{childList:true,subtree:true});</script>
 </body>
 </html>

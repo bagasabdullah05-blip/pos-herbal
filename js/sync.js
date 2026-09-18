@@ -238,7 +238,11 @@ function refreshSupaUI(){
     if(sup) await window.SupaDB.upsertSupplier(sup).catch(()=>{});
   });
   wrap('hapusSupplier', async(id)=>{
-    // id bisa undefined jika dipanggil tanpa arg (via confirm), ambil dari closure tidak bisa — skip, sync via full upload
+    // hapusSupplier dipanggil sebagai hapusSupplier('S003') — id ada
+    if(id) await window.SupaDB.deleteSupplier(id).catch(e=> console.warn('delete supplier cloud', e.message));
+    else {
+      // fallback: jika id tidak ada (dipanggil tanpa arg), sync full akan handle
+    }
   });
   wrap('simpanProduk', async()=>{
     const id=document.getElementById('p_id')?.value;

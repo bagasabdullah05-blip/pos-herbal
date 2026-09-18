@@ -339,6 +339,34 @@ function refreshSupaUI(){
     window.hapusProduk=function(id){ window._lastDeletedProdukId=id; return _origHapusProduk.apply(this, arguments); };
     _origHapusProduk._track=true;
   }
+  // outlet — local only sebelumnya
+  wrap('tambahOutlet', async()=>{
+    const nama=document.getElementById('outletNama')?.value.trim();
+    if(!nama) return;
+    // cari outlet yang baru saja dibuat (nama match, id generate di tambahOutlet)
+    const o=outlets.find(x=>x.nama===nama);
+    if(o && window.getSupa()){
+      try{ await supa.from('outlets').upsert({id:o.id, nama:o.nama}, {onConflict:'id'}); }catch(e){ console.warn('upsert outlet',e.message); }
+    }
+  });
+  wrap('hapusOutlet', async(id)=>{
+    const delId=id || window._lastDeletedOutletId;
+    if(delId && window.getSupa()){ try{ await supa.from('outlets').delete().eq('id', delId); }catch(e){ console.warn('delete outlet',e.message); } }
+  });
+  const _origHapusOutlet=window.hapusOutlet;
+  if(_origHapusOutlet && !_origHapusOutlet._track){
+    window.hapusOutlet=function(id){ window._lastDeletedOutletId=id; return _origHapusOutlet.apply(this, arguments); };
+    _origHapusOutlet._track=true;
+  }
+  wrap('prosesBulkProduk', async()=>{
+    // bulk produk sudah push via extra-push di hybridLoad, tapi push langsung juga
+    const toPush=produk.slice(0,10); // fallback push 10 terbaru jika bulk
+    for(const p of toPush) await window.SupaDB.upsertProduk(p).catch(()=>{});
+  });
+  wrap('tutupShift', async()=>{
+    const cur=shifts.find(s=>s.status==='tutup');
+    if(cur && window.getSupa()){ try{ await supa.from('shifts').update({tutup_at:cur.tutup, status:'tutup', modal_akhir:cur.setoran||cur.saldoAwal}).eq('id',cur.id); }catch(e){} }
+  });
   // pembelian & opname realtime push
   const origTerima = window.terimaBarang;
   if(origTerima && !origTerima._supaWrapped){

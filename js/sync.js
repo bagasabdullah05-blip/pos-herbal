@@ -182,17 +182,26 @@ async function syncFromSupabase(){
 }
 async function hardResetSupabase(){
   try{
-    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); });
-    localStorage.setItem('supabase_url', FIXED_SUPA_URL); localStorage.setItem('supabase_anon', FIXED_SUPA_KEY);
-    localStorage.setItem('hard_reset_v44','1');
+    // simpan supabase url dulu
+    const keepUrl=localStorage.getItem('supabase_url')||FIXED_SUPA_URL;
+    const keepKey=localStorage.getItem('supabase_anon')||FIXED_SUPA_KEY;
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')||k.startsWith('dexie_')) localStorage.removeItem(k); });
+    localStorage.setItem('supabase_url', keepUrl); localStorage.setItem('supabase_anon', keepKey);
+    localStorage.setItem('hard_reset_v45','1');
+    try{ sessionStorage.clear(); }catch{}
     if(window.getDexie && window.getDexie()){
-      try{ const db=window.getDexie(); if(db){ await db.produk.clear(); await db.member.clear(); await db.trx.clear(); } }catch{}
+      try{ const db=window.getDexie(); if(db){ try{await db.produk.clear();}catch{} try{await db.member.clear();}catch{} try{await db.trx.clear();}catch{} try{await db.supplier?.clear();}catch{} } }catch{}
       try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
+      try{ indexedDB.deleteDatabase('pos_outlet_db'); }catch{}
     }
-    if('caches' in window){ const keys=await caches.keys(); for(const k of keys) await caches.delete(k); }
-    if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
-    location.href=location.origin+location.pathname+'?v=v44&t='+Date.now();
-  }catch(e){ location.reload(true); }
+    if('caches' in window){ try{ const keys=await caches.keys(); for(const k of keys) await caches.delete(k); }catch{} }
+    if('serviceWorker' in navigator){ try{ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }catch{} }
+    // paksa reload tanpa cache
+    location.href=location.origin+location.pathname+'?hard_reset=1&v=v45&t='+Date.now();
+  }catch(e){
+    try{ localStorage.clear(); }catch{}
+    location.href=location.origin+location.pathname+'?hard_reset=1&t='+Date.now();
+  }
 }
 async function bersihkanCacheLokal(){
   if(!confirm('Bersihkan SEMUA cache lokal dan paksa reload Supabase (hard reset)?')) return;

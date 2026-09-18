@@ -488,12 +488,12 @@
 <dialog id="modalBulkProduk" class="p-0 rounded-2xl w-[560px] max-w-[95vw] backdrop:bg-black/30"><form method="dialog" class="p-5 space-y-3" onsubmit="prosesBulkProduk(event)"><h3 class="font-bold flex items-center gap-2"><i data-feather="copy" class="w-4 h-4"></i> Bulk Tambah Produk</h3><p class="text-xs text-[#718096]">Satu produk per baris (bisa paste dari Excel):<br><code>Nama | HPP | Harga | Kategori(opsional)</code> — pisah Tab / | / ;<br>Contoh:<br>Madu Baru | 45000 | 65000 | Madu</p><textarea id="bulkProdukText" rows="8" placeholder="Madu Baru | 45000 | 65000 | Madu&#10;Teh Baru | 12000 | 18000" class="w-full border rounded-xl p-3 text-sm font-mono"></textarea><div class="flex gap-2"><button type="submit" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Tambah Semua</button><button type="button" onclick="modalBulkProduk.close()" class="flex-1 border py-2 rounded-xl">Batal</button></div><div class="text-xs text-[#718096]">Stok awal 0 di toko aktif • nama duplikat dilewati • ID/barcode otomatis</div></form></dialog>
 <dialog id="modalPrinter" class="p-0 rounded-2xl w-[420px] max-w-[95vw] backdrop:bg-black/30"><div class="p-4 space-y-2"><h3 class="font-bold flex items-center gap-2"><i data-feather="printer" class="w-4 h-4"></i> Printer</h3><div id="printPreview" class="border p-3 text-xs bg-white"></div><div class="flex gap-2"><button onclick="window.print()" class="flex-1 bg-[var(--cbm-accent)] text-white py-2 rounded-xl">Print</button><button onclick="modalPrinter.close()" class="flex-1 border py-2 rounded-xl">Tutup</button></div></div></dialog>
 <div id="struk-area" class="hidden bg-white p-3 w-[58mm] text-[11px] leading-tight"><div class="text-center border-b border-dashed pb-2 mb-2"><img id="strukLogo" class="hidden mx-auto mb-1 max-h-[60px]"><div id="strukToko" class="font-bold"></div><div id="strukAlamat" class="text-[10px]"></div><div id="strukSosmed" class="text-[10px]"></div><div id="strukHead" class="text-[10px] font-semibold"></div></div><div id="strukBody"></div><div class="text-center mt-2 border-t border-dashed pt-2"><div id="strukFoot">Terima kasih sudah berbelanja</div><svg id="strukBarcode" class="mx-auto mt-1"></svg></div></div>
-<script src="js/config.js?v=v45"></script>
-<script src="js/db.js?v=v45"></script>
-<script src="js/supabase.js?v=v45"></script>
+<script src="js/config.js?v=v46"></script>
+<script src="js/db.js?v=v46"></script>
+<script src="js/supabase.js?v=v46"></script>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});</script>
-<script src="js/app.js?v=v45"></script>
-<script src="js/sync.js?v=v45"></script>
+<script src="js/app.js?v=v46"></script>
+<script src="js/sync.js?v=v46"></script>
 <script>feather.replace({ 'stroke-width': 1.4 }); document.addEventListener('DOMContentLoaded',()=> feather.replace({ 'stroke-width': 1.4 })); const ro=new MutationObserver(()=>{try{feather.replace({ 'stroke-width': 1.4 })}catch{}}); ro.observe(document.body,{childList:true,subtree:true});</script>
 </body>
 </html>

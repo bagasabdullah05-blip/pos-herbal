@@ -36,8 +36,17 @@ async function hybridLoadData(){
   const pSupa = window.initSupabase ? window.initSupabase() : Promise.resolve(null);
   await Promise.allSettled([pDex, pSupa]);
 
+  // paksa hard reset sekali untuk semua device yang masih cache lama
+  try{
+    const urlParams=new URLSearchParams(location.search);
+    if(urlParams.has('hard_reset') || !localStorage.getItem('hard_reset_v44')){
+      localStorage.setItem('hard_reset_v44','1');
+      // jangan loop — hanya bersihkan herbal_* yang usang, bukan supabase_url yang sudah fix
+    }
+    if(urlParams.has('hard_reset')) history.replaceState(null,'',location.pathname);
+  }catch{}
   const supa = window.getSupa && window.getSupa();
-  // MODE: Pure Supabase — semua load dari cloud, realtime penuh
+  // MODE: Pure Supabase — semua load dari cloud, local diabaikan
   if(supa){
     try{
       // load semua tabel utama dari Supabase
@@ -171,13 +180,23 @@ async function syncFromSupabase(){
     alert('Download OK: '+(pCloud?.length||0)+' produk, '+(supCloud?.length||0)+' supplier dari cloud');
   }catch(e){ alert('Download gagal: '+e.message); }
 }
-async function bersihkanCacheLokal(){
-  if(!confirm('Bersihkan SEMUA cache lokal (produk, supplier, transaksi) dan paksa load dari Supabase?')) return;
+async function hardResetSupabase(){
   try{
-    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); if(k.startsWith('dexie_')) localStorage.removeItem(k); });
-    localStorage.removeItem('supabase_url'); localStorage.removeItem('supabase_anon');
-    // paksa URL fix lagi
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); });
     localStorage.setItem('supabase_url', FIXED_SUPA_URL); localStorage.setItem('supabase_anon', FIXED_SUPA_KEY);
+    localStorage.setItem('hard_reset_v44','1');
+    if(window.getDexie && window.getDexie()){
+      try{ const db=window.getDexie(); if(db){ await db.produk.clear(); await db.member.clear(); await db.trx.clear(); } }catch{}
+      try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
+    }
+    if('caches' in window){ const keys=await caches.keys(); for(const k of keys) await caches.delete(k); }
+    if('serviceWorker' in navigator){ const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister(); }
+    location.href=location.origin+location.pathname+'?v=v44&t='+Date.now();
+  }catch(e){ location.reload(true); }
+}
+async function bersihkanCacheLokal(){
+  if(!confirm('Bersihkan SEMUA cache lokal dan paksa reload Supabase (hard reset)?')) return;
+  return hardResetSupabase();
     if(window.getDexie && window.getDexie()){
       try{ const db=window.getDexie(); if(db){ await db.produk.clear(); await db.member.clear(); await db.trx.clear(); } }catch{}
       try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
@@ -312,6 +331,7 @@ function refreshSupaUI(){
   }catch(e){ console.error('[sync init] ', e); }
 })();
 
+window.hardResetSupabase = hardResetSupabase;
 window.bersihkanCacheLokal = bersihkanCacheLokal;
 window.saveSupaConfig = saveSupaConfig;
 window.testSupa = testSupa;

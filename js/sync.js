@@ -32,18 +32,11 @@ async function hybridLoadData(){
   const pSupa = window.initSupabase ? window.initSupabase() : Promise.resolve(null);
   await Promise.allSettled([pDex, pSupa]);
 
-  // paksa hard reset total — semua local dibuang, pakai Supabase 100%
+  // PURE: hapus total localStorage tiap load — 100% Supabase
   try{
-    const urlParams=new URLSearchParams(location.search);
-    const needReset = urlParams.has('hard_reset') || !localStorage.getItem('hard_reset_v51');
-    if(needReset){
-      // hapus semua cache lokal yang bikin beda
-      Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); });
-      try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
-      localStorage.setItem('hard_reset_v51','1');
-      console.log('[hard reset] local dibersihkan, paksa Supabase-only');
-    }
-    if(urlParams.has('hard_reset')) history.replaceState(null,'',location.pathname);
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); });
+    try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
+    if(new URLSearchParams(location.search).has('hard_reset')) history.replaceState(null,'',location.pathname);
   }catch{}
   // PURE: hapus semua cache lokal sebelum load, biar 100% Supabase
   try{
@@ -70,16 +63,9 @@ async function hybridLoadData(){
         supa.from('users').select('*').then(r=> r.error? null : r.data.map(u=>({id:u.id, nama:u.nama, username:u.username||u.nama, password:u.password||u.pin, role:u.role==='Admin'?'Owner':u.role, outletId:u.outlet_id, outletIds:u.outlet_ids||(u.outlet_id?[u.outlet_id]:[])}))).catch(()=>null),
         supa.from('kategori').select('nama').then(r=> r.error? null : r.data.map(x=>x.nama)).catch(()=>null)
       ]);
-      // tetap panggil _origLoadData untuk inisialisasi struktur dasar (LS keys, default), tapi langsung timpa dengan cloud
       await _origLoadData();
-      // PURE but keep extra local not yet in cloud (push them)
-      if(pCloud !== null){
-        if(pCloud.length < produk.length){
-          const extra=produk.filter(p=> !pCloud.some(c=>c.id===p.id));
-          if(extra.length){ console.log('[sync] push extra produk', extra.length); setTimeout(async()=>{ for(const p of extra) await window.SupaDB.upsertProduk(p).catch(()=>{}); }, 500); }
-          const map=new Map(pCloud.map(p=>[p.id,p])); produk.forEach(p=>{ if(!map.has(p.id)) map.set(p.id,p); }); produk=Array.from(map.values());
-        } else { console.log('[sync] PURE produk', pCloud.length); produk = pCloud; }
-      }
+      // PURE: langsung timpa dengan cloud, local diabaikan 100%
+      if(pCloud !== null){ console.log('[sync] PURE produk', pCloud.length); produk = pCloud; }
       if(mCloud !== null){ console.log('[sync] PURE member', mCloud.length); member = mCloud; }
       if(supCloud !== null){ console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
       if(promoCloud !== null) promo = promoCloud || [];
@@ -89,23 +75,15 @@ async function hybridLoadData(){
         else if(beliCloud.length) pembelian = beliCloud;
         else pembelian = beliCloud || [];
       }
-      if(opCloud !== null){
-        if(opCloud.length===0 && opname.length>0){ console.log('[sync] push opname', opname.length); setTimeout(async()=>{ for(const o of opname) await supa.from('opname').insert({outlet_id:o.outlet||currentOutlet, produk_id:o.produk, sistem:o.sistem, fisik:o.fisik, selisih:o.selisih}).then(()=>{},()=>{}); }, 500); }
-        else if(opCloud.length) opname = opCloud;
-        else opname = opCloud || [];
-      }
-      if(shiftCloud !== null){
-        if(shiftCloud.length===0 && shifts.length>0){ console.log('[sync] push shifts', shifts.length); setTimeout(async()=>{ for(const s of shifts) await supa.from('shifts').upsert({id:s.id, outlet_id:s.outlet, user_id:s.user, buka_at:s.buka, tutup_at:s.tutup, status:s.status, modal_awal:s.saldoAwal||0}, {onConflict:'id'}).then(()=>{},()=>{}); }, 500); }
-        else if(shiftCloud.length) shifts = shiftCloud;
-        else shifts = shiftCloud || [];
-      }
+      if(opCloud !== null) opname = opCloud || [];
+      if(shiftCloud !== null) shifts = shiftCloud || [];
       if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); console.log('[sync] PURE outlets', outlets.length); }
       if(userCloud !== null){ console.log('[sync] PURE users', userCloud.length); users = userCloud; }
       if(katCloud !== null && katCloud.length){ kategoriList = katCloud; }
-      try{ localStorage.setItem(LS.produk, JSON.stringify(produk)); localStorage.setItem(LS.member, JSON.stringify(member)); localStorage.setItem(LS.sup, JSON.stringify(supplier)); localStorage.setItem(LS.promo, JSON.stringify(promo)); localStorage.setItem(LS.trx, JSON.stringify(trx)); localStorage.setItem(LS.beli, JSON.stringify(pembelian)); localStorage.setItem(LS.op, JSON.stringify(opname)); }catch{}
+      // PURE: jangan simpan ke localStorage/Dexie lagi (biar 100% Supabase)
+      try{ ['herbal_produk','herbal_member','herbal_sup','herbal_promo','herbal_trx','herbal_beli','herbal_op','herbal_shift'].forEach(k=> localStorage.removeItem(k)); }catch{}
       if(window.getDexie()){
-        await cachePut('produk', produk);
-        await cachePut('member', member);
+        try{ const db=window.getDexie(); if(db){ await db.produk.clear(); await db.member.clear(); await db.trx.clear(); } }catch{}
       }
       updateSupaStatus('connected — ONLINE Supabase ('+(pCloud?.length||0)+' produk, '+(trxCloud?.length||0)+' trx)');
       refreshSupaUI();

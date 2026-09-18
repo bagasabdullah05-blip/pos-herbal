@@ -36,12 +36,16 @@ async function hybridLoadData(){
   const pSupa = window.initSupabase ? window.initSupabase() : Promise.resolve(null);
   await Promise.allSettled([pDex, pSupa]);
 
-  // paksa hard reset sekali untuk semua device yang masih cache lama
+  // paksa hard reset total — semua local dibuang, pakai Supabase 100%
   try{
     const urlParams=new URLSearchParams(location.search);
-    if(urlParams.has('hard_reset') || !localStorage.getItem('hard_reset_v44')){
-      localStorage.setItem('hard_reset_v44','1');
-      // jangan loop — hanya bersihkan herbal_* yang usang, bukan supabase_url yang sudah fix
+    const needReset = urlParams.has('hard_reset') || !localStorage.getItem('hard_reset_v51');
+    if(needReset){
+      // hapus semua cache lokal yang bikin beda
+      Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); });
+      try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
+      localStorage.setItem('hard_reset_v51','1');
+      console.log('[hard reset] local dibersihkan, paksa Supabase-only');
     }
     if(urlParams.has('hard_reset')) history.replaceState(null,'',location.pathname);
   }catch{}

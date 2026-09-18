@@ -1,23 +1,19 @@
-// Sync layer: Dexie cache + Supabase (realtime) — semua entitas
+// PURE SUPABASE — tanpa localStorage/Dexie untuk data utama
 let _origSaveAll = null;
 let _origLoadData = null;
 let syncDebounce = null;
-let lastPushed = {produk:0, member:0, supplier:0, promo:0};
 
 function wrapSaveAll(){
   if(_origSaveAll) return;
   _origSaveAll = window.saveAll;
   window.saveAll = function(){
+    // PURE: jangan tulis herbal_* ke localStorage lagi untuk data utama — hanya Supabase
+    // tetap panggil orig untuk kompatibilitas outlet/users lama, tapi segera timpa cache dengan cloud
     _origSaveAll.apply(this, arguments);
+    // hapus cache herbal_* yang baru saja ditulis (biar tidak jadi sumber)
     try{
-      const dex = window.getDexie && window.getDexie();
-      if(dex){
-        cachePut('produk', produk);
-        cachePut('member', member);
-        if(trx && trx.length) cachePut('trx', trx.slice(0,100));
-        localStorage.setItem('dexie_last_sync', Date.now().toString());
-      }
-    }catch(e){ console.warn('dexie cache save', e.message); }
+      ['herbal_produk','herbal_member','herbal_sup','herbal_promo','herbal_trx','herbal_beli','herbal_op','herbal_shift'].forEach(k=> localStorage.removeItem(k));
+    }catch{}
     clearTimeout(syncDebounce);
     syncDebounce = setTimeout(async()=>{
       const s = window.getSupa && window.getSupa();
@@ -49,8 +45,15 @@ async function hybridLoadData(){
     }
     if(urlParams.has('hard_reset')) history.replaceState(null,'',location.pathname);
   }catch{}
+  // PURE: hapus semua cache lokal sebelum load, biar 100% Supabase
+  try{
+    ['herbal_produk','herbal_member','herbal_sup','herbal_promo','herbal_trx','herbal_beli','herbal_op','herbal_shift','herbal_nota','herbal_curNota'].forEach(k=> localStorage.removeItem(k));
+    if(window.getDexie && window.getDexie()){
+      const db=window.getDexie(); if(db){ try{db.produk.clear();}catch{} try{db.member.clear();}catch{} try{db.trx.clear();}catch{} }
+    }
+  }catch{}
   const supa = window.getSupa && window.getSupa();
-  // MODE: Pure Supabase — semua load dari cloud, local diabaikan
+  // MODE: Pure Supabase — semua load dari cloud, tanpa local
   if(supa){
     try{
       // PURE SUPABASE: langsung ambil semua dari cloud, tanpa baca localStorage dulu

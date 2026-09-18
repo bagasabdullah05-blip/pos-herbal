@@ -1,16 +1,14 @@
-// Sync layer: Dexie cache + Supabase untuk internet cepat (Opsi 2 - Vercel + Supabase SIN)
-// Di-load SETELAH js/app.js agar bisa wrap saveAll/loadData
-
+// Sync layer: Dexie cache + Supabase (realtime) — semua entitas
 let _origSaveAll = null;
 let _origLoadData = null;
 let syncDebounce = null;
+let lastPushed = {produk:0, member:0, supplier:0, promo:0};
 
 function wrapSaveAll(){
   if(_origSaveAll) return;
   _origSaveAll = window.saveAll;
   window.saveAll = function(){
     _origSaveAll.apply(this, arguments);
-    // cache ke Dexie (non-blocking)
     try{
       const dex = window.getDexie && window.getDexie();
       if(dex){
@@ -20,90 +18,105 @@ function wrapSaveAll(){
         localStorage.setItem('dexie_last_sync', Date.now().toString());
       }
     }catch(e){ console.warn('dexie cache save', e.message); }
-    // debounce sync ke Supabase (1 detik)
     clearTimeout(syncDebounce);
     syncDebounce = setTimeout(async()=>{
       const s = window.getSupa && window.getSupa();
       if(!s) return;
-      // hanya upload produk yang berubah terakhir? untuk cepat, upsert 5 produk terbaru saja
-      // full sync dipanggil manual via syncToSupabase()
-    }, 1000);
+      try{
+        // push yang berubah — untuk sekarang push supplier/produk/member yang baru diedit akan di-handle di simpan* langsung,
+        // debounced ini untuk jaga-jaga jika ada perubahan lain
+      }catch(e){ console.warn('[sync debounce]', e.message); }
+    }, 1200);
   };
 }
 
-// Override loadData untuk hybrid: cache dulu -> supabase -> localStorage fallback
 async function hybridLoadData(){
   try{
-  // init dexie + supabase parallel
   const pDex = window.initDexie ? window.initDexie() : Promise.resolve(null);
   const pSupa = window.initSupabase ? window.initSupabase() : Promise.resolve(null);
   await Promise.allSettled([pDex, pSupa]);
 
-  // coba load dari supabase jika ready (cepat dari SIN)
   const supa = window.getSupa && window.getSupa();
+  // MODE: Supabase-only jika konek — semua device load dari cloud, local hanya cache
   if(supa){
     try{
-      const [pCloud, mCloud] = await Promise.all([
+      const [pCloud, mCloud, supCloud] = await Promise.all([
         window.SupaDB.getProduk().catch(()=>null),
-        window.SupaDB.getMember().catch(()=>null)
+        window.SupaDB.getMember().catch(()=>null),
+        window.SupaDB.getSupplier().catch(()=>null)
       ]);
-      if(pCloud && pCloud.length){
-        // simpan ke dexie + localStorage via saveAll nanti
-        // tapi jangan timpa jika cloud kosong
-        console.log('[sync] loaded from supabase', pCloud.length, 'produk');
-        // simpan sementara ke LS agar loadData asli bisa pakai fallback Logic-nya kita override langsung
-        // panggil origLoad dulu untuk isi defaults, lalu timpa dengan cloud
-        await _origLoadData();
-        // timpa dengan cloud (cloud adalah source of truth jika ada)
-        // merge: cloud wins, tapi produk lokal yang belum di-cloud tetap ada
-        const map = new Map(pCloud.map(p=>[p.id, p]));
-        // tambahkan produk lokal yang belum ada di cloud (offline create)
-        produk.forEach(p=>{ if(!map.has(p.id)) map.set(p.id, p); });
-        produk = Array.from(map.values());
-        if(mCloud && mCloud.length){
-          const mmap = new Map(mCloud.map(m=>[m.id, m]));
-          member.forEach(m=>{ if(!mmap.has(m.id)) mmap.set(m.id, m); });
-          member = Array.from(mmap.values());
+      // tetap panggil _origLoadData dulu untuk load outlets/users/kategori/etc (yang belum full cloud)
+      await _origLoadData();
+      // SUPABASE-ONLY: cloud sebagai source, tapi jika cloud tertinggal (3 vs 291 lokal) → push lokal dulu
+      let needPush = false;
+      if(pCloud !== null){
+        if(pCloud.length===0 && produk.length>0){
+          console.log('[sync] cloud produk kosong, push lokal', produk.length, 'ke cloud');
+          needPush=true;
+        } else if(pCloud.length>0 && pCloud.length < produk.length && produk.length>10){
+          console.log('[sync] cloud tertinggal ('+pCloud.length+' vs lokal '+produk.length+'), push lokal ke cloud');
+          needPush=true;
+          // jangan timpa lokal, biarkan produk tetap 291 lokal dulu, nanti realtime akan sync
+        } else if(pCloud.length>0){
+          console.log('[sync] supabase produk', pCloud.length, '(supabase-only)');
+          produk = pCloud;
         }
-        // cache ke dexie
-        if(window.getDexie()){ await cachePut('produk', produk); await cachePut('member', member); }
-        saveAll(); // sudah wrapped -> cache lagi
-        updateSupaStatus('connected — '+produk.length+' produk dari cloud');
-        return; // skip fallback lagi
-      } else {
-        console.log('[sync] supabase empty, pakai lokal');
       }
+      if(mCloud !== null){
+        if(mCloud.length===0 && member.length>2){ needPush=true; }
+        else if(mCloud.length>0 && mCloud.length < member.length){ needPush=true; }
+        else if(mCloud.length>0){ member = mCloud; }
+      }
+      if(supCloud !== null){
+        if(supCloud.length===0 && supplier.length>0){ needPush=true; }
+        else if(supCloud.length>0 && supCloud.length < supplier.length){ needPush=true; }
+        else if(supCloud.length>0){ supplier = supCloud; }
+        else if(supCloud.length===0){ supplier = []; }
+      }
+      if(needPush){
+        // push async tanpa block UI
+        setTimeout(async()=>{
+          try{
+            for(const p of produk) await window.SupaDB.upsertProduk(p);
+            for(const s of supplier) await window.SupaDB.upsertSupplier(s);
+            for(const m of member) await window.SupaDB.upsertMember(m);
+            console.log('[sync] push lokal ke cloud selesai');
+            updateSupaStatus('connected — push lokal ke cloud OK');
+          }catch(e){ console.warn('[sync push]', e.message); }
+        }, 1000);
+      }
+      // simpan hasil cloud ke localStorage/Dexie sebagai cache
+      saveAll();
+      if(window.getDexie()){
+        await cachePut('produk', produk);
+        await cachePut('member', member);
+      }
+      updateSupaStatus('connected — Supabase only ('+(pCloud?.length||0)+' produk, '+(supCloud?.length||0)+' supplier)');
+      refreshSupaUI();
+      return;
     }catch(e){
       console.warn('[sync] supabase load gagal, fallback lokal', e.message);
       updateSupaStatus('error: '+e.message+' — fallback lokal');
     }
   }
 
-  // coba dexie cache sebelum localStorage (lebih cepat, non-blocking, >5MB)
   const dex = window.getDexie && window.getDexie();
   if(dex){
     try{
       const cProduk = await cacheGetAll('produk');
       const cMember = await cacheGetAll('member');
-      if(cProduk && cProduk.length){
-        // inject ke localStorage agar origLoad pakai ini
-        localStorage.setItem(LS.produk, JSON.stringify(cProduk));
-      }
-      if(cMember && cMember.length){
-        localStorage.setItem(LS.member, JSON.stringify(cMember));
-      }
+      if(cProduk && cProduk.length) localStorage.setItem(LS.produk, JSON.stringify(cProduk));
+      if(cMember && cMember.length) localStorage.setItem(LS.member, JSON.stringify(cMember));
     }catch(e){ console.warn('dexie load', e.message); }
   }
 
   await _origLoadData();
-  // after load, ensure status
   refreshSupaUI();
   }catch(e){
     console.error('[sync] hybridLoadData fatal, fallback ke local', e);
     try{ await _origLoadData(); }catch(ee){ console.error(ee); }
     refreshSupaUI();
   }
-  // paksa modal login muncul jika belum login (DIAM fix)
   setTimeout(()=>{
     try{
       const cur = (window.getCurrentUser?window.getCurrentUser():null);
@@ -116,7 +129,6 @@ async function hybridLoadData(){
   }, 900);
 }
 
-// UI helpers untuk Setting > Supabase
 function saveSupaConfig(){
   const url = document.getElementById('supaUrl')?.value.trim();
   const key = document.getElementById('supaKey')?.value.trim();
@@ -145,11 +157,11 @@ function testSupa(){
 async function syncToSupabase(){
   const s = window.getSupa && window.getSupa();
   if(!s) return alert('Supabase belum connected');
-  if(!confirm('Upload '+produk.length+' produk + '+member.length+' member lokal ke cloud?')) return;
+  if(!confirm('Upload '+produk.length+' produk + '+member.length+' member + '+supplier.length+' supplier lokal ke cloud?')) return;
   let ok=0, fail=0;
-  for(const p of produk){
-    try{ await window.SupaDB.upsertProduk(p); ok++; }catch(e){ fail++; console.warn(e.message); }
-  }
+  for(const p of produk){ try{ await window.SupaDB.upsertProduk(p); ok++; }catch(e){ fail++; } }
+  for(const m of member){ try{ await window.SupaDB.upsertMember(m); ok++; }catch(e){ fail++; } }
+  for(const sup of supplier){ try{ await window.SupaDB.upsertSupplier(sup); ok++; }catch(e){ fail++; } }
   alert('Upload selesai: '+ok+' ok, '+fail+' gagal');
 }
 async function syncFromSupabase(){
@@ -158,12 +170,14 @@ async function syncFromSupabase(){
   try{
     const pCloud = await window.SupaDB.getProduk();
     const mCloud = await window.SupaDB.getMember();
-    if(pCloud) { produk = pCloud; }
-    if(mCloud) { member = mCloud; }
+    const supCloud = await window.SupaDB.getSupplier();
+    if(pCloud) produk = pCloud;
+    if(mCloud) member = mCloud;
+    if(supCloud) supplier = supCloud;
     saveAll();
     if(window.getDexie()){ await cachePut('produk', produk); await cachePut('member', member); }
     renderAll();
-    alert('Download OK: '+produk.length+' produk dari cloud');
+    alert('Download OK: '+(pCloud?.length||0)+' produk, '+(supCloud?.length||0)+' supplier dari cloud');
   }catch(e){ alert('Download gagal: '+e.message); }
 }
 function updateSupaStatus(msg){
@@ -178,12 +192,10 @@ function refreshSupaUI(){
   if(keyEl) keyEl.value = localStorage.getItem('supabase_anon') || '';
   if(cfg && cfg.enabled) updateSupaStatus('connected — '+cfg.url);
   else updateSupaStatus('belum dikonfigurasi — pakai localStorage');
-  // hook bayarSekarang untuk juga insert ke supabase transaksi
   const origBayar = window.bayarSekarang;
   if(origBayar && !origBayar._supaWrapped){
     window.bayarSekarang = function(){
       const res = origBayar.apply(this, arguments);
-      // setelah trx dibuat, push ke cloud async (trx adalah array, ambil terbaru)
       setTimeout(async()=>{
         const s = window.getSupa && window.getSupa();
         if(s && trx && trx[0]){
@@ -194,25 +206,50 @@ function refreshSupaUI(){
     };
     window.bayarSekarang._supaWrapped = true;
   }
+  // wrap supplier/produk/member simpan agar langsung push ke cloud (realtime)
+  const wrap = (fnName, handler)=>{
+    const orig = window[fnName];
+    if(!orig || orig._supaWrapped) return;
+    window[fnName] = async function(...args){
+      const res = orig.apply(this, args);
+      const s = window.getSupa && window.getSupa();
+      if(s){
+        try{ await handler(...args); }catch(e){ console.warn('[sync push]', fnName, e.message); }
+      }
+      return res;
+    };
+    window[fnName]._supaWrapped=true;
+  };
+  wrap('simpanSupplier', async()=>{
+    const id=document.getElementById('s_id')?.value;
+    const sup=supplier.find(x=>x.id===id);
+    if(sup) await window.SupaDB.upsertSupplier(sup).catch(()=>{});
+  });
+  wrap('hapusSupplier', async(id)=>{
+    // id bisa undefined jika dipanggil tanpa arg (via confirm), ambil dari closure tidak bisa — skip, sync via full upload
+  });
+  wrap('simpanProduk', async()=>{
+    const id=document.getElementById('p_id')?.value;
+    const p=produk.find(x=>x.id===id);
+    if(p) await window.SupaDB.upsertProduk(p).catch(()=>{});
+  });
+  wrap('simpanMember', async()=>{
+    const id=document.getElementById('m_id')?.value;
+    const m=member.find(x=>x.id===id);
+    if(m) await window.SupaDB.upsertMember(m).catch(()=>{});
+  });
 }
 
-// Sesi login PERSISTEN — jangan hapus curUser saat load (reload tidak perlu login lagi).
+// Sesi login PERSISTEN
 
-// init wrapping setelah app.js load
 (function(){
   try{
-  // simpan orig
   _origSaveAll = window.saveAll;
   _origLoadData = window.loadData;
-  if(_origLoadData){
-    window.loadData = hybridLoadData;
-  }
+  if(_origLoadData) window.loadData = hybridLoadData;
   wrapSaveAll();
-  // after DOM ready, refresh UI + re-init jika loadData sudah terlanjur dipanggil
   document.addEventListener('DOMContentLoaded', ()=>{
     refreshSupaUI();
-    // jika loadData sudah finish sebelum wrapping (app.js: loadData().then(renderAll) di akhir), wrap terlambat
-    // jadi pastikan supabase tetap init
     if(window.SUPABASE_CONFIG && !window.getSupa()){
       window.initSupabase && window.initSupabase().then(()=> refreshSupaUI());
     }
@@ -220,16 +257,9 @@ function refreshSupaUI(){
       window.initDexie && window.initDexie();
     }
   });
-  // juga panggil langsung
   setTimeout(refreshSupaUI, 800);
-  // global error handler: catat saja, JANGAN paksa tampilkan login
-  // (error apapun tidak boleh mengeluarkan user yang sedang login)
-  window.addEventListener('error', (e)=>{
-    console.warn('[global error]', e.message, e.error);
-  });
-  window.addEventListener('unhandledrejection', (e)=>{
-    console.warn('[unhandled]', e.reason);
-  });
+  window.addEventListener('error', (e)=>{ console.warn('[global error]', e.message, e.error); });
+  window.addEventListener('unhandledrejection', (e)=>{ console.warn('[unhandled]', e.reason); });
   }catch(e){ console.error('[sync init] ', e); }
 })();
 

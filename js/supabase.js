@@ -1,7 +1,4 @@
 // Supabase client wrapper untuk POS - Vercel Edge + Singapore
-// Load via CDN: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2
-// Fallback ke localStorage jika offline / belum konfigurasi
-
 let supa = null;
 let supaReady = false;
 
@@ -19,7 +16,7 @@ async function loadSupabaseLib(){
 async function initSupabase(){
   const cfg = window.SUPABASE_CONFIG;
   if(!cfg || !cfg.url || !cfg.anonKey){
-    console.log('[supabase] belum dikonfigurasi - pakai localStorage fallback. Set di Setting > Supabase');
+    console.log('[supabase] belum dikonfigurasi');
     return null;
   }
   try{
@@ -29,12 +26,12 @@ async function initSupabase(){
       auth: { persistSession: false },
       global: { headers: { 'x-pos-outlet': '1' } }
     });
-    // test ping (cepat, pakai head)
     const { error } = await supa.from('produk').select('id', {count:'exact', head:true}).limit(1);
     if(error) throw error;
     supaReady = true;
     cfg.enabled = true;
     console.log('[supabase] connected', cfg.url);
+    setupRealtime();
     return supa;
   }catch(e){
     console.warn('[supabase] connect gagal, fallback localStorage', e.message);
@@ -45,24 +42,57 @@ async function initSupabase(){
 
 function getSupa(){ return supaReady ? supa : null; }
 
-// Helper CRUD cepat dengan cache handling
+// Realtime — semua channel update langsung tanpa reload
+let realtimeChannels = [];
+function setupRealtime(){
+  const s = getSupa(); if(!s) return;
+  try{ realtimeChannels.forEach(ch=>{ try{ s.removeChannel(ch); }catch{} }); }catch{}
+  realtimeChannels=[];
+  const tables = ['produk','member','supplier','promo','transaksi','shifts','pembelian','opname'];
+  tables.forEach(tbl=>{
+    try{
+      const ch = s.channel('rt-'+tbl)
+        .on('postgres_changes', {event:'*', schema:'public', table: tbl}, payload=>{
+          console.log('[realtime]', tbl, payload.eventType, payload.new?.id||payload.old?.id);
+          // reload ringan — debounce agar tidak spam jika banyak event
+          clearTimeout(window._rtDebounce);
+          window._rtDebounce=setTimeout(async()=>{
+            try{
+              if(tbl==='produk'){ const d=await SupaDB.getProduk(); if(d){ produk=d; localStorage.setItem(LS.produk, JSON.stringify(produk)); renderProdukGrid(); renderTabelProduk(); renderStok(); } }
+              if(tbl==='member'){ const d=await SupaDB.getMember(); if(d){ member=d; localStorage.setItem(LS.member, JSON.stringify(member)); renderTabelMember(); renderMemberSelect(); } }
+              if(tbl==='supplier'){ const d=await SupaDB.getSupplier(); if(d){ supplier=d; localStorage.setItem(LS.sup, JSON.stringify(supplier)); renderSupplier(); } }
+              if(tbl==='promo'){ const d=await SupaDB.getPromo(); if(d){ promo=d; localStorage.setItem(LS.promo, JSON.stringify(promo)); renderPromo(); } }
+              if(tbl==='transaksi'){ const d=await SupaDB.getTransaksi({outletId: currentOutlet, limit:50}); if(d){ /* merge */ } }
+            }catch(e){ console.warn('[realtime reload]', e.message); }
+          }, 800);
+        }).subscribe();
+      realtimeChannels.push(ch);
+    }catch(e){ console.warn('[realtime]', tbl, e.message); }
+  });
+}
+
 const SupaDB = {
   async getProduk(){
-    const s = getSupa();
-    if(!s) return null;
+    const s = getSupa(); if(!s) return null;
     const { data, error } = await s.from('produk').select('*').order('nama').limit(1000);
     if(error) throw error;
     return data.map(r=>({
       id:r.id, sku:r.sku, barcode:r.barcode, nama:r.nama, kategori:r.kategori,
-      harga:r.harga, hpp:r.hpp, stok:r.stok, exp:r.exp, batch:r.batch, bpom:r.bpom, supplier:r.supplier_id, gambar:r.gambar
+      harga:r.harga, hpp:r.hpp, stok:r.stok, stokByOutlet: r.stok_by_outlet||{[r.outlet_id||'OUT001']: r.stok}, exp:r.exp, batch:r.batch, bpom:r.bpom, supplier:r.supplier_id, gambar:r.gambar, outlet:r.outlet_id
     }));
   },
   async upsertProduk(p){
     const s = getSupa(); if(!s) return;
+    const stokBy = p.stokByOutlet || {[p.outlet||currentOutlet||'OUT001']: p.stok||0};
     const { error } = await s.from('produk').upsert({
-      id:p.id, sku:p.sku||p.kategori?.slice(0,3).toUpperCase()+'-'+p.barcode, barcode:p.barcode, nama:p.nama,
-      kategori:p.kategori, harga:p.harga, hpp:p.hpp||0, stok:p.stok, exp:p.exp||null, batch:p.batch||null, bpom:p.bpom||null, supplier_id:p.supplier||null
-    });
+      id:p.id, sku:p.sku, barcode:p.barcode, nama:p.nama,
+      kategori:p.kategori, harga:p.harga, hpp:p.hpp||0, stok: p.stok||0, stok_by_outlet: stokBy, exp:p.exp||null, batch:p.batch||null, bpom:p.bpom||null, supplier_id:p.supplier||null, outlet_id:p.outlet||currentOutlet||'OUT001'
+    }, {onConflict:'id'});
+    if(error) throw error;
+  },
+  async deleteProduk(id){
+    const s=getSupa(); if(!s) return;
+    const {error}=await s.from('produk').delete().eq('id', id);
     if(error) throw error;
   },
   async getMember(){
@@ -70,6 +100,33 @@ const SupaDB = {
     const { data, error } = await s.from('member').select('*').order('nama').limit(1000);
     if(error) throw error;
     return data.map(r=>({id:r.id, nama:r.nama, hp:r.hp, poin:r.poin, level:r.level, referral:r.referral, diskon:r.diskon}));
+  },
+  async upsertMember(m){
+    const s=getSupa(); if(!s) return;
+    const {error}=await s.from('member').upsert({id:m.id, nama:m.nama, hp:m.hp, poin:m.poin||0, level:m.level, referral:m.referral, diskon:m.diskon||0}, {onConflict:'id'});
+    if(error) throw error;
+  },
+  async getSupplier(){
+    const s=getSupa(); if(!s) return null;
+    const {data, error}=await s.from('supplier').select('*').order('nama').limit(500);
+    if(error) throw error;
+    return data.map(r=>({id:r.id, nama:r.nama, kontak:r.kontak, alamat:r.alamat}));
+  },
+  async upsertSupplier(sup){
+    const s=getSupa(); if(!s) return;
+    const {error}=await s.from('supplier').upsert({id:sup.id, nama:sup.nama, kontak:sup.kontak||null, alamat:sup.alamat||null}, {onConflict:'id'});
+    if(error) throw error;
+  },
+  async deleteSupplier(id){
+    const s=getSupa(); if(!s) return;
+    const {error}=await s.from('supplier').delete().eq('id', id);
+    if(error) throw error;
+  },
+  async getPromo(){
+    const s=getSupa(); if(!s) return null;
+    const {data, error}=await s.from('promo').select('*').order('nama').limit(200);
+    if(error) throw error;
+    return data.map(r=>({id:r.id, nama:r.nama, tipe:r.tipe, nilai:r.nilai, nilai2:r.nilai2, kategori:r.kategori, produkIds:r.produk_ids||[], freeProdukIds:r.free_produk_ids||[], memberLevel:r.member_level, kode:r.kode, minBelanja:r.min_belanja, maxDiskon:r.max_diskon, periodeStart:r.periode_start, periodeEnd:r.periode_end, expHari:r.exp_hari, aktif:r.aktif}));
   },
   async getTransaksi({since, outletId, limit=50}={}){
     const s = getSupa(); if(!s) return null;
@@ -85,8 +142,18 @@ const SupaDB = {
     const { error } = await s.from('transaksi').insert({
       id:t.id, waktu:t.waktu||new Date().toISOString(), outlet_id:t.outlet||t.outlet_id||'OUT001',
       user_id:t.user_id||(window.getCurrentUser?window.getCurrentUser():null)?.id||null, member_id:t.member||t.member_id||null,
-      cart: t.cart||[], subtotal:t.subtotal||0, diskon:t.diskon||0, ppn:t.ppn||0, total:t.total||0, bayar:t.bayar||'Tunai', status:t.status||'paid'
+      cart: t.cart||[], subtotal:t.subtotal||t.sub||0, diskon:t.diskon||t.disc||0, ppn:t.ppn||0, total:t.total||0, bayar:t.bayar||t.pay||'Tunai', status:t.status||'paid'
     });
+    if(error) throw error;
+  },
+  async insertPembelian(b){
+    const s=getSupa(); if(!s) return;
+    const {error}=await s.from('pembelian').insert({outlet_id:b.outlet||b.outlet_id||currentOutlet, supplier_id:b.supplier||b.supplier_id, produk_id:b.produk||b.produk_id, qty:b.qty, hpp:b.hpp||0, batch:b.batch||null, exp:b.exp||null, ket:b.ket||'Beli'});
+    if(error) throw error;
+  },
+  async insertOpname(o){
+    const s=getSupa(); if(!s) return;
+    const {error}=await s.from('opname').insert({outlet_id:o.outlet||o.outlet_id||currentOutlet, produk_id:o.produk||o.produk_id, sistem:o.sistem, fisik:o.fisik, selisih:o.selisih});
     if(error) throw error;
   }
 };

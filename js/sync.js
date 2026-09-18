@@ -37,53 +37,55 @@ async function hybridLoadData(){
   await Promise.allSettled([pDex, pSupa]);
 
   const supa = window.getSupa && window.getSupa();
-  // MODE: Pure Supabase — online wajib, semua device load dari cloud saja
+  // MODE: Pure Supabase — semua load dari cloud, realtime penuh
   if(supa){
     try{
-      const [pCloud, mCloud, supCloud, promoCloud] = await Promise.all([
+      // load semua tabel utama dari Supabase
+      const [pCloud, mCloud, supCloud, promoCloud, trxCloud, beliCloud, opCloud, shiftCloud, outletCloud, userCloud, katCloud] = await Promise.all([
         window.SupaDB.getProduk().catch(()=>null),
         window.SupaDB.getMember().catch(()=>null),
         window.SupaDB.getSupplier().catch(()=>null),
-        window.SupaDB.getPromo ? window.SupaDB.getPromo().catch(()=>null) : Promise.resolve(null)
+        window.SupaDB.getPromo ? window.SupaDB.getPromo().catch(()=>null) : Promise.resolve(null),
+        window.SupaDB.getTransaksi ? window.SupaDB.getTransaksi({outletId: currentOutlet, limit:200}).catch(()=>null) : Promise.resolve(null),
+        supa.from('pembelian').select('*').order('waktu',{ascending:false}).limit(200).then(r=> r.error? null : r.data.map(x=>({waktu:x.waktu, outlet:x.outlet_id, supplier:x.supplier_id, produk:x.produk_id, qty:x.qty, hpp:x.hpp, batch:x.batch, exp:x.exp, ket:x.ket}))).catch(()=>null),
+        supa.from('opname').select('*').order('waktu',{ascending:false}).limit(200).then(r=> r.error? null : r.data.map(x=>({waktu:x.waktu, outlet:x.outlet_id, produk:x.produk_id, sistem:x.sistem, fisik:x.fisik, selisih:x.selisih}))).catch(()=>null),
+        supa.from('shifts').select('*').order('buka_at',{ascending:false}).limit(100).then(r=> r.error? null : r.data.map(s=>({id:s.id, outlet:s.outlet_id, user:s.user_id, userNama:s.user_id, buka:s.buka_at, tutup:s.tutup_at, saldoAwal:s.modal_awal, omzet:0, transaksi:0, status:s.status==='buka'?'buka':'tutup'}))).catch(()=>null),
+        supa.from('outlets').select('*').then(r=> r.error? null : r.data).catch(()=>null),
+        supa.from('users').select('*').then(r=> r.error? null : r.data.map(u=>({id:u.id, nama:u.nama, username:u.username||u.nama, password:u.password||u.pin, role:u.role==='Admin'?'Owner':u.role, outletId:u.outlet_id, outletIds:u.outlet_ids||(u.outlet_id?[u.outlet_id]:[])}))).catch(()=>null),
+        supa.from('kategori').select('nama').then(r=> r.error? null : r.data.map(x=>x.nama)).catch(()=>null)
       ]);
-      // load outlets/users/kategori/etc tetap via _origLoadData (masih local, akan di-migrate ke cloud nanti)
       await _origLoadData();
-      // PURE: pakai cloud sebagai sumber utama
+      // PURE: pakai cloud sebagai sumber utama untuk semua
       if(pCloud !== null){
-        if(pCloud.length===0 && produk.length>0){
-          console.log('[sync] cloud kosong, seed dari lokal', produk.length);
-          setTimeout(async()=>{ for(const p of produk) await window.SupaDB.upsertProduk(p).catch(()=>{}); }, 500);
-        } else {
-          console.log('[sync] Supabase-only produk', pCloud.length);
-          produk = pCloud || [];
-        }
+        if(pCloud.length===0 && produk.length>0){ setTimeout(async()=>{ for(const p of produk) await window.SupaDB.upsertProduk(p).catch(()=>{}); }, 500); }
+        else { console.log('[sync] Supabase-only produk', pCloud.length); produk = pCloud || []; }
       }
       if(mCloud !== null){
-        if(mCloud.length===0 && member.length>2){
-          setTimeout(async()=>{ for(const m of member) await window.SupaDB.upsertMember(m).catch(()=>{}); }, 500);
-        } else { member = mCloud || []; }
+        if(mCloud.length===0 && member.length>2){ setTimeout(async()=>{ for(const m of member) await window.SupaDB.upsertMember(m).catch(()=>{}); }, 500); } else { member = mCloud || []; }
       }
       if(supCloud !== null){
-        if(supCloud.length===0 && supplier.length>0){
-          setTimeout(async()=>{ for(const s of supplier) await window.SupaDB.upsertSupplier(s).catch(()=>{}); }, 500);
-        } else { supplier = supCloud || []; }
+        if(supCloud.length===0 && supplier.length>0){ setTimeout(async()=>{ for(const s of supplier) await window.SupaDB.upsertSupplier(s).catch(()=>{}); }, 500); } else { supplier = supCloud || []; }
       }
       if(promoCloud !== null && promoCloud.length) promo = promoCloud;
-      // simpan ke cache lokal hanya sebagai backup, bukan sumber
-      try{ localStorage.setItem(LS.produk, JSON.stringify(produk)); localStorage.setItem(LS.member, JSON.stringify(member)); localStorage.setItem(LS.sup, JSON.stringify(supplier)); }catch{}
+      if(trxCloud !== null){ trx = trxCloud.map(t=>({id:t.id, waktu:t.waktu, outlet:t.outlet_id, user_id:t.user_id, member:t.member_id, cart:t.cart, subtotal:t.subtotal, diskon:t.diskon, ppn:t.ppn, total:t.total, pay:t.bayar, bayar:t.total, kembalian:0, status:t.status, laba:0})); }
+      if(beliCloud !== null && beliCloud.length) pembelian = beliCloud;
+      if(opCloud !== null && opCloud.length) opname = opCloud;
+      if(shiftCloud !== null && shiftCloud.length) shifts = shiftCloud;
+      if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); }
+      if(userCloud !== null && userCloud.length){ /* merge users, jangan timpa Owner lokal jika cloud belum ada */ const map=new Map(userCloud.map(u=>[u.id,u])); users.forEach(u=>{ if(!map.has(u.id)) map.set(u.id,u); }); if(userCloud.length) users=Array.from(map.values()); }
+      if(katCloud !== null && katCloud.length){ kategoriList = katCloud; }
+      try{ localStorage.setItem(LS.produk, JSON.stringify(produk)); localStorage.setItem(LS.member, JSON.stringify(member)); localStorage.setItem(LS.sup, JSON.stringify(supplier)); localStorage.setItem(LS.promo, JSON.stringify(promo)); localStorage.setItem(LS.trx, JSON.stringify(trx)); localStorage.setItem(LS.beli, JSON.stringify(pembelian)); localStorage.setItem(LS.op, JSON.stringify(opname)); }catch{}
       if(window.getDexie()){
         await cachePut('produk', produk);
         await cachePut('member', member);
       }
-      updateSupaStatus('connected — ONLINE Supabase ('+(pCloud?.length||0)+' produk)');
+      updateSupaStatus('connected — ONLINE Supabase ('+(pCloud?.length||0)+' produk, '+(trxCloud?.length||0)+' trx)');
       refreshSupaUI();
-      // jangan fallback ke Dexie/local lagi
       saveAll();
       return;
     }catch(e){
       console.warn('[sync] supabase pure load gagal', e.message);
       updateSupaStatus('OFFLINE — butuh internet untuk load Supabase');
-      // tampilkan error, jangan fallback diam-diam
       alert('Gagal load dari Supabase (butuh online): '+e.message);
       throw e;
     }
@@ -248,6 +250,39 @@ function refreshSupaUI(){
     const m=member.find(x=>x.id===id);
     if(m) await window.SupaDB.upsertMember(m).catch(()=>{});
   });
+  // pembelian & opname realtime push
+  const origTerima = window.terimaBarang;
+  if(origTerima && !origTerima._supaWrapped){
+    window.terimaBarang = function(...args){
+      const res = origTerima.apply(this, args);
+      const s=window.getSupa && window.getSupa();
+      if(s && res) window.SupaDB.insertPembelian(res).catch(()=>{});
+      return res;
+    }; window.terimaBarang._supaWrapped=true;
+  }
+  const origOpname = window.simpanOpnameRows;
+  if(origOpname && !origOpname._supaWrapped){
+    window.simpanOpnameRows = function(...args){
+      const before=opname.length;
+      const res=origOpname.apply(this, args);
+      const s=window.getSupa && window.getSupa();
+      if(s){
+        const added=opname.slice(0, opname.length-before);
+        added.forEach(o=> window.SupaDB.insertOpname(o).catch(()=>{}));
+      }
+      return res;
+    }; window.simpanOpnameRows._supaWrapped=true;
+  }
+  // shifts realtime push
+  const origBuka = window.bukaShift;
+  if(origBuka && !origBuka._supaWrapped){
+    window.bukaShift = function(...args){
+      const res=origBuka.apply(this, args);
+      const s=window.getSupa && window.getSupa();
+      if(s && shifts[0]) supa.from('shifts').upsert({id:shifts[0].id, outlet_id:shifts[0].outlet, user_id:shifts[0].user, buka_at:shifts[0].buka, status:'buka', modal_awal:shifts[0].saldoAwal||0}).then(()=>{},()=>{});
+      return res;
+    }; window.bukaShift._supaWrapped=true;
+  }
 }
 
 // Sesi login PERSISTEN

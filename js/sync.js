@@ -37,66 +37,55 @@ async function hybridLoadData(){
   await Promise.allSettled([pDex, pSupa]);
 
   const supa = window.getSupa && window.getSupa();
-  // MODE: Supabase-only jika konek — semua device load dari cloud, local hanya cache
+  // MODE: Pure Supabase — online wajib, semua device load dari cloud saja
   if(supa){
     try{
-      const [pCloud, mCloud, supCloud] = await Promise.all([
+      const [pCloud, mCloud, supCloud, promoCloud] = await Promise.all([
         window.SupaDB.getProduk().catch(()=>null),
         window.SupaDB.getMember().catch(()=>null),
-        window.SupaDB.getSupplier().catch(()=>null)
+        window.SupaDB.getSupplier().catch(()=>null),
+        window.SupaDB.getPromo ? window.SupaDB.getPromo().catch(()=>null) : Promise.resolve(null)
       ]);
-      // tetap panggil _origLoadData dulu untuk load outlets/users/kategori/etc (yang belum full cloud)
+      // load outlets/users/kategori/etc tetap via _origLoadData (masih local, akan di-migrate ke cloud nanti)
       await _origLoadData();
-      // SUPABASE-ONLY: cloud sebagai source, tapi jika cloud tertinggal (3 vs 291 lokal) → push lokal dulu
-      let needPush = false;
+      // PURE: pakai cloud sebagai sumber utama
       if(pCloud !== null){
         if(pCloud.length===0 && produk.length>0){
-          console.log('[sync] cloud produk kosong, push lokal', produk.length, 'ke cloud');
-          needPush=true;
-        } else if(pCloud.length>0 && pCloud.length < produk.length && produk.length>10){
-          console.log('[sync] cloud tertinggal ('+pCloud.length+' vs lokal '+produk.length+'), push lokal ke cloud');
-          needPush=true;
-          // jangan timpa lokal, biarkan produk tetap 291 lokal dulu, nanti realtime akan sync
-        } else if(pCloud.length>0){
-          console.log('[sync] supabase produk', pCloud.length, '(supabase-only)');
-          produk = pCloud;
+          console.log('[sync] cloud kosong, seed dari lokal', produk.length);
+          setTimeout(async()=>{ for(const p of produk) await window.SupaDB.upsertProduk(p).catch(()=>{}); }, 500);
+        } else {
+          console.log('[sync] Supabase-only produk', pCloud.length);
+          produk = pCloud || [];
         }
       }
       if(mCloud !== null){
-        if(mCloud.length===0 && member.length>2){ needPush=true; }
-        else if(mCloud.length>0 && mCloud.length < member.length){ needPush=true; }
-        else if(mCloud.length>0){ member = mCloud; }
+        if(mCloud.length===0 && member.length>2){
+          setTimeout(async()=>{ for(const m of member) await window.SupaDB.upsertMember(m).catch(()=>{}); }, 500);
+        } else { member = mCloud || []; }
       }
       if(supCloud !== null){
-        if(supCloud.length===0 && supplier.length>0){ needPush=true; }
-        else if(supCloud.length>0 && supCloud.length < supplier.length){ needPush=true; }
-        else if(supCloud.length>0){ supplier = supCloud; }
-        else if(supCloud.length===0){ supplier = []; }
+        if(supCloud.length===0 && supplier.length>0){
+          setTimeout(async()=>{ for(const s of supplier) await window.SupaDB.upsertSupplier(s).catch(()=>{}); }, 500);
+        } else { supplier = supCloud || []; }
       }
-      if(needPush){
-        // push async tanpa block UI
-        setTimeout(async()=>{
-          try{
-            for(const p of produk) await window.SupaDB.upsertProduk(p);
-            for(const s of supplier) await window.SupaDB.upsertSupplier(s);
-            for(const m of member) await window.SupaDB.upsertMember(m);
-            console.log('[sync] push lokal ke cloud selesai');
-            updateSupaStatus('connected — push lokal ke cloud OK');
-          }catch(e){ console.warn('[sync push]', e.message); }
-        }, 1000);
-      }
-      // simpan hasil cloud ke localStorage/Dexie sebagai cache
-      saveAll();
+      if(promoCloud !== null && promoCloud.length) promo = promoCloud;
+      // simpan ke cache lokal hanya sebagai backup, bukan sumber
+      try{ localStorage.setItem(LS.produk, JSON.stringify(produk)); localStorage.setItem(LS.member, JSON.stringify(member)); localStorage.setItem(LS.sup, JSON.stringify(supplier)); }catch{}
       if(window.getDexie()){
         await cachePut('produk', produk);
         await cachePut('member', member);
       }
-      updateSupaStatus('connected — Supabase only ('+(pCloud?.length||0)+' produk, '+(supCloud?.length||0)+' supplier)');
+      updateSupaStatus('connected — ONLINE Supabase ('+(pCloud?.length||0)+' produk)');
       refreshSupaUI();
+      // jangan fallback ke Dexie/local lagi
+      saveAll();
       return;
     }catch(e){
-      console.warn('[sync] supabase load gagal, fallback lokal', e.message);
-      updateSupaStatus('error: '+e.message+' — fallback lokal');
+      console.warn('[sync] supabase pure load gagal', e.message);
+      updateSupaStatus('OFFLINE — butuh internet untuk load Supabase');
+      // tampilkan error, jangan fallback diam-diam
+      alert('Gagal load dari Supabase (butuh online): '+e.message);
+      throw e;
     }
   }
 

@@ -73,39 +73,15 @@ async function hybridLoadData(){
           const map=new Map(pCloud.map(p=>[p.id,p])); produk.forEach(p=>{ if(!map.has(p.id)) map.set(p.id,p); }); produk=Array.from(map.values());
         } else { console.log('[sync] PURE produk', pCloud.length); produk = pCloud; }
       }
-      if(mCloud !== null){
-        if(mCloud.length < member.length){
-          const extra=member.filter(m=> !mCloud.some(c=>c.id===m.id));
-          if(extra.length) setTimeout(async()=>{ for(const m of extra) await window.SupaDB.upsertMember(m).catch(()=>{}); }, 500);
-          const map=new Map(mCloud.map(m=>[m.id,m])); member.forEach(m=>{ if(!map.has(m.id)) map.set(m.id,m); }); member=Array.from(map.values());
-        } else { console.log('[sync] PURE member', mCloud.length); member = mCloud; }
-      }
-      if(supCloud !== null){
-        if(supCloud.length < supplier.length){
-          const extra=supplier.filter(s=> !supCloud.some(c=>c.id===s.id));
-          if(extra.length) setTimeout(async()=>{ for(const s of extra) await window.SupaDB.upsertSupplier(s).catch(()=>{}); }, 500);
-          const map=new Map(supCloud.map(s=>[s.id,s])); supplier.forEach(s=>{ if(!map.has(s.id)) map.set(s.id,s); }); supplier=Array.from(map.values());
-        } else { console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
-      }
-      if(promoCloud !== null){
-        if(promoCloud.length < promo.length){
-          const extra=promo.filter(p=> !promoCloud.some(c=>c.id===p.id));
-          if(extra.length) setTimeout(async()=>{ for(const p of extra) await window.SupaDB.upsertPromo(p).catch(()=>{}); }, 500);
-          const map=new Map(promoCloud.map(p=>[p.id,p])); promo.forEach(p=>{ if(!map.has(p.id)) map.set(p.id,p); }); promo=Array.from(map.values());
-        } else if(promoCloud.length) promo = promoCloud;
-      }
+      if(mCloud !== null){ console.log('[sync] PURE member', mCloud.length); member = mCloud; }
+      if(supCloud !== null){ console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
+      if(promoCloud !== null) promo = promoCloud || [];
       if(trxCloud !== null){ trx = trxCloud.map(t=>({id:t.id, waktu:t.waktu, outlet:t.outlet_id, user_id:t.user_id, member:t.member_id, cart:t.cart, subtotal:t.subtotal, diskon:t.diskon, ppn:t.ppn, total:t.total, pay:t.bayar, bayar:t.total, kembalian:0, status:t.status, laba:0})); console.log('[sync] PURE trx', trx.length); }
       if(beliCloud !== null) pembelian = beliCloud || [];
       if(opCloud !== null) opname = opCloud || [];
       if(shiftCloud !== null) shifts = shiftCloud || [];
       if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); console.log('[sync] PURE outlets', outlets.length); }
-      if(userCloud !== null){
-        if(userCloud.length < users.length){
-          const extra=users.filter(u=> !userCloud.some(c=>c.id===u.id));
-          if(extra.length){ console.log('[sync] push extra users', extra.map(u=>u.username)); setTimeout(async()=>{ for(const u of extra) await window.SupaDB.upsertUser(u).catch(e=> console.warn('push user',e.message)); }, 500); }
-          const map=new Map(userCloud.map(u=>[u.id,u])); users.forEach(u=>{ if(!map.has(u.id)) map.set(u.id,u); }); users=Array.from(map.values());
-        } else if(userCloud.length){ users = userCloud; console.log('[sync] PURE users', users.length); }
-      }
+      if(userCloud !== null){ console.log('[sync] PURE users', userCloud.length); users = userCloud; }
       if(katCloud !== null && katCloud.length){ kategoriList = katCloud; }
       try{ localStorage.setItem(LS.produk, JSON.stringify(produk)); localStorage.setItem(LS.member, JSON.stringify(member)); localStorage.setItem(LS.sup, JSON.stringify(supplier)); localStorage.setItem(LS.promo, JSON.stringify(promo)); localStorage.setItem(LS.trx, JSON.stringify(trx)); localStorage.setItem(LS.beli, JSON.stringify(pembelian)); localStorage.setItem(LS.op, JSON.stringify(opname)); }catch{}
       if(window.getDexie()){

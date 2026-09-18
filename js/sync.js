@@ -70,18 +70,16 @@ async function hybridLoadData(){
         supa.from('users').select('*').then(r=> r.error? null : r.data.map(u=>({id:u.id, nama:u.nama, username:u.username||u.nama, password:u.password||u.pin, role:u.role==='Admin'?'Owner':u.role, outletId:u.outlet_id, outletIds:u.outlet_ids||(u.outlet_id?[u.outlet_id]:[])}))).catch(()=>null),
         supa.from('kategori').select('nama').then(r=> r.error? null : r.data.map(x=>x.nama)).catch(()=>null)
       ]);
+      // tetap panggil _origLoadData untuk init yang tidak di-Supabase (memberLevels), tapi data utama 100% dari Supabase — local dihapus dulu
+      try{ Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); }); }catch{}
       await _origLoadData();
-      // PURE: langsung timpa dengan cloud, local diabaikan 100%
+      // PURE: timpa total dengan cloud — local 100% diabaikan
       if(pCloud !== null){ console.log('[sync] PURE produk', pCloud.length); produk = pCloud; }
       if(mCloud !== null){ console.log('[sync] PURE member', mCloud.length); member = mCloud; }
       if(supCloud !== null){ console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
       if(promoCloud !== null) promo = promoCloud || [];
       if(trxCloud !== null){ trx = trxCloud.map(t=>({id:t.id, waktu:t.waktu, outlet:t.outlet_id, user_id:t.user_id, member:t.member_id, cart:t.cart, subtotal:t.subtotal, diskon:t.diskon, ppn:t.ppn, total:t.total, pay:t.bayar, bayar:t.total, kembalian:0, status:t.status, laba:0})); console.log('[sync] PURE trx', trx.length); }
-      if(beliCloud !== null){
-        if(beliCloud.length===0 && pembelian.length>0){ console.log('[sync] push pembelian', pembelian.length); setTimeout(async()=>{ for(const b of pembelian) await supa.from('pembelian').insert({outlet_id:b.outlet, supplier_id:b.supplier, produk_id:b.produk, qty:b.qty, hpp:b.hpp||0, batch:b.batch||null, exp:b.exp||null, ket:b.ket||'Beli'}).then(()=>{},()=>{}); }, 500); }
-        else if(beliCloud.length) pembelian = beliCloud;
-        else pembelian = beliCloud || [];
-      }
+      if(beliCloud !== null) pembelian = beliCloud || [];
       if(opCloud !== null) opname = opCloud || [];
       if(shiftCloud !== null) shifts = shiftCloud || [];
       if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); console.log('[sync] PURE outlets', outlets.length); }

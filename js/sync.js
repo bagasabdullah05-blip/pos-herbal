@@ -169,6 +169,27 @@ async function syncFromSupabase(){
     alert('Download OK: '+(pCloud?.length||0)+' produk, '+(supCloud?.length||0)+' supplier dari cloud');
   }catch(e){ alert('Download gagal: '+e.message); }
 }
+async function bersihkanCacheLokal(){
+  if(!confirm('Bersihkan SEMUA cache lokal (produk, supplier, transaksi) dan paksa load dari Supabase?')) return;
+  try{
+    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); if(k.startsWith('dexie_')) localStorage.removeItem(k); });
+    localStorage.removeItem('supabase_url'); localStorage.removeItem('supabase_anon');
+    // paksa URL fix lagi
+    localStorage.setItem('supabase_url', FIXED_SUPA_URL); localStorage.setItem('supabase_anon', FIXED_SUPA_KEY);
+    if(window.getDexie && window.getDexie()){
+      try{ const db=window.getDexie(); if(db){ await db.produk.clear(); await db.member.clear(); await db.trx.clear(); } }catch{}
+      try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
+    }
+    if('caches' in window){
+      const keys=await caches.keys(); for(const k of keys) await caches.delete(k);
+    }
+    if('serviceWorker' in navigator){
+      const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister();
+    }
+    alert('Cache dibersihkan. Reload paksa dari Supabase...');
+    location.reload();
+  }catch(e){ alert('Gagal bersihkan: '+e.message); }
+}
 function updateSupaStatus(msg){
   const el = document.getElementById('supaStatusText');
   if(el) el.textContent = msg;
@@ -252,6 +273,7 @@ function refreshSupaUI(){
   }catch(e){ console.error('[sync init] ', e); }
 })();
 
+window.bersihkanCacheLokal = bersihkanCacheLokal;
 window.saveSupaConfig = saveSupaConfig;
 window.testSupa = testSupa;
 window.syncToSupabase = syncToSupabase;

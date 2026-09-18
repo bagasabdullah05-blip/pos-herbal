@@ -125,9 +125,11 @@ create table if not exists promo (
   periode_end date,
   exp_hari int,
   aktif boolean default true,
+  bundling_diskon int default 0,
   outlet_id text references outlets(id) default 'OUT001',
   created_at timestamptz default now()
 );
+alter table promo add column if not exists bundling_diskon int default 0;
 
 -- 8. Transaksi
 create table if not exists transaksi (

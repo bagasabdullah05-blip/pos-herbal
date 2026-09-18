@@ -67,7 +67,7 @@ function setupRealtime(){
               if(tbl==='pembelian'){ renderPembelian(); renderStok(); }
               if(tbl==='opname'){ renderOpname(); }
               if(tbl==='outlets'){ const d=await supa.from('outlets').select('*'); if(d.data){ outlets=d.data; localStorage.setItem(LS.outlet, JSON.stringify(outlets)); renderOutlet(); } }
-              if(tbl==='users'){ const d=await supa.from('users').select('*'); if(d.data){ /* map to local users format if needed */ renderUsers(); } }
+              if(tbl==='users'){ const d=await supa.from('users').select('*'); if(d.data){ users=d.data.map(u=>({id:u.id, nama:u.nama, username:u.username||u.nama, password:u.password||u.pin||'', role:u.role==='Admin'?'Owner':u.role, outletId:u.outlet_id, outletIds:u.outlet_ids||(u.outlet_id?[u.outlet_id]:[])})); localStorage.setItem(LS.users, JSON.stringify(users)); renderUsers(); } }
               if(tbl==='kategori'){ const d=await supa.from('kategori').select('nama'); if(d.data){ kategoriList=d.data.map(r=>r.nama); localStorage.setItem(LS.kategori, JSON.stringify(kategoriList)); renderKategoriSelects(); } }
             }catch(e){ console.warn('[realtime reload]', e.message); }
           }, 800);
@@ -132,8 +132,29 @@ const SupaDB = {
     const s=getSupa(); if(!s) return null;
     const {data, error}=await s.from('promo').select('*').order('nama').limit(200);
     if(error) throw error;
-    return data.map(r=>({id:r.id, nama:r.nama, tipe:r.tipe, nilai:r.nilai, nilai2:r.nilai2, kategori:r.kategori, produkIds:r.produk_ids||[], freeProdukIds:r.free_produk_ids||[], memberLevel:r.member_level, kode:r.kode, minBelanja:r.min_belanja, maxDiskon:r.max_diskon, periodeStart:r.periode_start, periodeEnd:r.periode_end, expHari:r.exp_hari, aktif:r.aktif}));
+    return data.map(r=>({id:r.id, nama:r.nama, tipe:r.tipe, nilai:r.nilai, nilai2:r.nilai2, kategori:r.kategori, produkIds:r.produk_ids||[], freeProdukIds:r.free_produk_ids||[], memberLevel:r.member_level, kode:r.kode, minBelanja:r.min_belanja, maxDiskon:r.max_diskon, periodeStart:r.periode_start, periodeEnd:r.periode_end, expHari:r.exp_hari, aktif:r.aktif, bundlingDiskon:r.bundling_diskon||0}));
   },
+  async upsertPromo(p){
+    const s=getSupa(); if(!s) return;
+    const payload={id:p.id, nama:p.nama, tipe:p.tipe, nilai:p.nilai||0, nilai2:p.nilai2||0, kategori:p.kategori||null, produk_ids:p.produkIds||[], free_produk_ids:p.freeProdukIds||[], member_level:p.memberLevel||null, kode:p.kode||null, min_belanja:p.minBelanja||0, max_diskon:p.maxDiskon||0, periode_start:p.periodeStart||null, periode_end:p.periodeEnd||null, exp_hari:p.expHari||null, bundling_diskon:p.bundlingDiskon||0, aktif:p.aktif!==false};
+    let {error}=await s.from('promo').upsert(payload, {onConflict:'id'});
+    if(error && error.message.includes('bundling_diskon')){ delete payload.bundling_diskon; const r2=await s.from('promo').upsert(payload, {onConflict:'id'}); error=r2.error; }
+    if(error) throw error;
+  },
+  async deletePromo(id){ const s=getSupa(); if(!s) return; const {error}=await s.from('promo').delete().eq('id',id); if(error) throw error; },
+  async getUsers(){
+    const s=getSupa(); if(!s) return null;
+    const {data,error}=await s.from('users').select('*').order('nama').limit(200);
+    if(error) throw error;
+    return data.map(u=>({id:u.id, nama:u.nama, username:u.username||u.nama, password:u.password||u.pin||'', role:u.role==='Admin'?'Owner':u.role, outletId:u.outlet_id, outletIds:u.outlet_ids||(u.outlet_id?[u.outlet_id]:[]), pin:u.pin}));
+  },
+  async upsertUser(u){
+    const s=getSupa(); if(!s) return;
+    const {error}=await s.from('users').upsert({id:u.id, nama:u.nama, username:(u.username||'').toLowerCase(), password:u.password||u.pin||'1234', pin:u.pin||(u.password||'').slice(0,4), role:u.role, outlet_id:u.outletId||u.outlet_id||null, outlet_ids:u.outletIds||u.outlet_ids||null}, {onConflict:'id'});
+    if(error) throw error;
+  },
+  async deleteUser(id){ const s=getSupa(); if(!s) return; const {error}=await s.from('users').delete().eq('id',id); if(error) throw error; },
+  async deleteMember(id){ const s=getSupa(); if(!s) return; const {error}=await s.from('member').delete().eq('id',id); if(error) throw error; },
   async getTransaksi({since, outletId, limit=50}={}){
     const s = getSupa(); if(!s) return null;
     let q = s.from('transaksi').select('*').order('waktu',{ascending:false}).limit(limit);

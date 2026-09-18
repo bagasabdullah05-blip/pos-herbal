@@ -65,17 +65,47 @@ async function hybridLoadData(){
       ]);
       // tetap panggil _origLoadData untuk inisialisasi struktur dasar (LS keys, default), tapi langsung timpa dengan cloud
       await _origLoadData();
-      // PURE: timpa semua dengan cloud (jika cloud null = fetch gagal, jangan timpa)
-      if(pCloud !== null){ console.log('[sync] PURE produk', pCloud.length); produk = pCloud; }
-      if(mCloud !== null){ console.log('[sync] PURE member', mCloud.length); member = mCloud; }
-      if(supCloud !== null){ console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
-      if(promoCloud !== null) promo = promoCloud || [];
+      // PURE but keep extra local not yet in cloud (push them)
+      if(pCloud !== null){
+        if(pCloud.length < produk.length){
+          const extra=produk.filter(p=> !pCloud.some(c=>c.id===p.id));
+          if(extra.length){ console.log('[sync] push extra produk', extra.length); setTimeout(async()=>{ for(const p of extra) await window.SupaDB.upsertProduk(p).catch(()=>{}); }, 500); }
+          const map=new Map(pCloud.map(p=>[p.id,p])); produk.forEach(p=>{ if(!map.has(p.id)) map.set(p.id,p); }); produk=Array.from(map.values());
+        } else { console.log('[sync] PURE produk', pCloud.length); produk = pCloud; }
+      }
+      if(mCloud !== null){
+        if(mCloud.length < member.length){
+          const extra=member.filter(m=> !mCloud.some(c=>c.id===m.id));
+          if(extra.length) setTimeout(async()=>{ for(const m of extra) await window.SupaDB.upsertMember(m).catch(()=>{}); }, 500);
+          const map=new Map(mCloud.map(m=>[m.id,m])); member.forEach(m=>{ if(!map.has(m.id)) map.set(m.id,m); }); member=Array.from(map.values());
+        } else { console.log('[sync] PURE member', mCloud.length); member = mCloud; }
+      }
+      if(supCloud !== null){
+        if(supCloud.length < supplier.length){
+          const extra=supplier.filter(s=> !supCloud.some(c=>c.id===s.id));
+          if(extra.length) setTimeout(async()=>{ for(const s of extra) await window.SupaDB.upsertSupplier(s).catch(()=>{}); }, 500);
+          const map=new Map(supCloud.map(s=>[s.id,s])); supplier.forEach(s=>{ if(!map.has(s.id)) map.set(s.id,s); }); supplier=Array.from(map.values());
+        } else { console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
+      }
+      if(promoCloud !== null){
+        if(promoCloud.length < promo.length){
+          const extra=promo.filter(p=> !promoCloud.some(c=>c.id===p.id));
+          if(extra.length) setTimeout(async()=>{ for(const p of extra) await window.SupaDB.upsertPromo(p).catch(()=>{}); }, 500);
+          const map=new Map(promoCloud.map(p=>[p.id,p])); promo.forEach(p=>{ if(!map.has(p.id)) map.set(p.id,p); }); promo=Array.from(map.values());
+        } else if(promoCloud.length) promo = promoCloud;
+      }
       if(trxCloud !== null){ trx = trxCloud.map(t=>({id:t.id, waktu:t.waktu, outlet:t.outlet_id, user_id:t.user_id, member:t.member_id, cart:t.cart, subtotal:t.subtotal, diskon:t.diskon, ppn:t.ppn, total:t.total, pay:t.bayar, bayar:t.total, kembalian:0, status:t.status, laba:0})); console.log('[sync] PURE trx', trx.length); }
       if(beliCloud !== null) pembelian = beliCloud || [];
       if(opCloud !== null) opname = opCloud || [];
       if(shiftCloud !== null) shifts = shiftCloud || [];
       if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); console.log('[sync] PURE outlets', outlets.length); }
-      if(userCloud !== null && userCloud.length){ users = userCloud; console.log('[sync] PURE users', users.length); }
+      if(userCloud !== null){
+        if(userCloud.length < users.length){
+          const extra=users.filter(u=> !userCloud.some(c=>c.id===u.id));
+          if(extra.length){ console.log('[sync] push extra users', extra.map(u=>u.username)); setTimeout(async()=>{ for(const u of extra) await window.SupaDB.upsertUser(u).catch(e=> console.warn('push user',e.message)); }, 500); }
+          const map=new Map(userCloud.map(u=>[u.id,u])); users.forEach(u=>{ if(!map.has(u.id)) map.set(u.id,u); }); users=Array.from(map.values());
+        } else if(userCloud.length){ users = userCloud; console.log('[sync] PURE users', users.length); }
+      }
       if(katCloud !== null && katCloud.length){ kategoriList = katCloud; }
       try{ localStorage.setItem(LS.produk, JSON.stringify(produk)); localStorage.setItem(LS.member, JSON.stringify(member)); localStorage.setItem(LS.sup, JSON.stringify(supplier)); localStorage.setItem(LS.promo, JSON.stringify(promo)); localStorage.setItem(LS.trx, JSON.stringify(trx)); localStorage.setItem(LS.beli, JSON.stringify(pembelian)); localStorage.setItem(LS.op, JSON.stringify(opname)); }catch{}
       if(window.getDexie()){
@@ -200,19 +230,6 @@ async function hardResetSupabase(){
 async function bersihkanCacheLokal(){
   if(!confirm('Bersihkan SEMUA cache lokal dan paksa reload Supabase (hard reset)?')) return;
   return hardResetSupabase();
-    if(window.getDexie && window.getDexie()){
-      try{ const db=window.getDexie(); if(db){ await db.produk.clear(); await db.member.clear(); await db.trx.clear(); } }catch{}
-      try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
-    }
-    if('caches' in window){
-      const keys=await caches.keys(); for(const k of keys) await caches.delete(k);
-    }
-    if('serviceWorker' in navigator){
-      const regs=await navigator.serviceWorker.getRegistrations(); for(const r of regs) await r.unregister();
-    }
-    alert('Cache dibersihkan. Reload paksa dari Supabase...');
-    location.reload();
-  }catch(e){ alert('Gagal bersihkan: '+e.message); }
 }
 function updateSupaStatus(msg){
   const el = document.getElementById('supaStatusText');
@@ -276,6 +293,52 @@ function refreshSupaUI(){
     const m=member.find(x=>x.id===id);
     if(m) await window.SupaDB.upsertMember(m).catch(()=>{});
   });
+  wrap('hapusMember', async(id)=>{
+    const delId=id||window._lastDeletedMemberId;
+    if(delId) await window.SupaDB.deleteMember(delId).catch(()=>{});
+  });
+  const _origHapusMember=window.hapusMember;
+  if(_origHapusMember && !_origHapusMember._track){
+    window.hapusMember=function(id){ window._lastDeletedMemberId=id; return _origHapusMember.apply(this, arguments); };
+    _origHapusMember._track=true;
+  }
+  wrap('simpanPromo', async()=>{
+    const id=document.getElementById('pr_id')?.value;
+    const p=promo.find(x=>x.id===id);
+    if(p) await window.SupaDB.upsertPromo(p).catch(e=> console.warn('upsert promo',e.message));
+  });
+  wrap('hapusPromo', async(id)=>{
+    const delId=id||window._lastDeletedPromoId;
+    if(delId) await window.SupaDB.deletePromo(delId).catch(()=>{});
+  });
+  const _origHapusPromo=window.hapusPromo;
+  if(_origHapusPromo && !_origHapusPromo._track){
+    window.hapusPromo=function(id){ window._lastDeletedPromoId=id; return _origHapusPromo.apply(this, arguments); };
+    _origHapusPromo._track=true;
+  }
+  wrap('simpanUser', async()=>{
+    const id=document.getElementById('u_id')?.value;
+    const u=users.find(x=>x.id===id);
+    if(u) await window.SupaDB.upsertUser(u).catch(e=> console.warn('upsert user',e.message));
+  });
+  wrap('hapusUser', async(id)=>{
+    const delId=id||window._lastDeletedUserId;
+    if(delId) await window.SupaDB.deleteUser(delId).catch(()=>{});
+  });
+  const _origHapusUser=window.hapusUser;
+  if(_origHapusUser && !_origHapusUser._track){
+    window.hapusUser=function(id){ window._lastDeletedUserId=id; return _origHapusUser.apply(this, arguments); };
+    _origHapusUser._track=true;
+  }
+  wrap('hapusProduk', async(id)=>{
+    const delId=id||window._lastDeletedProdukId;
+    if(delId) await window.SupaDB.deleteProduk(delId).catch(()=>{});
+  });
+  const _origHapusProduk=window.hapusProduk;
+  if(_origHapusProduk && !_origHapusProduk._track){
+    window.hapusProduk=function(id){ window._lastDeletedProdukId=id; return _origHapusProduk.apply(this, arguments); };
+    _origHapusProduk._track=true;
+  }
   // pembelian & opname realtime push
   const origTerima = window.terimaBarang;
   if(origTerima && !origTerima._supaWrapped){

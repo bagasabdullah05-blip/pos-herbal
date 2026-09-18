@@ -48,7 +48,7 @@ function setupRealtime(){
   const s = getSupa(); if(!s) return;
   try{ realtimeChannels.forEach(ch=>{ try{ s.removeChannel(ch); }catch{} }); }catch{}
   realtimeChannels=[];
-  const tables = ['produk','member','supplier','promo','transaksi','shifts','pembelian','opname'];
+  const tables = ['produk','member','supplier','promo','transaksi','shifts','pembelian','opname','outlets','users','kategori'];
   tables.forEach(tbl=>{
     try{
       const ch = s.channel('rt-'+tbl)
@@ -62,7 +62,13 @@ function setupRealtime(){
               if(tbl==='member'){ const d=await SupaDB.getMember(); if(d){ member=d; localStorage.setItem(LS.member, JSON.stringify(member)); renderTabelMember(); renderMemberSelect(); } }
               if(tbl==='supplier'){ const d=await SupaDB.getSupplier(); if(d){ supplier=d; localStorage.setItem(LS.sup, JSON.stringify(supplier)); renderSupplier(); } }
               if(tbl==='promo'){ const d=await SupaDB.getPromo(); if(d){ promo=d; localStorage.setItem(LS.promo, JSON.stringify(promo)); renderPromo(); } }
-              if(tbl==='transaksi'){ const d=await SupaDB.getTransaksi({outletId: currentOutlet, limit:50}); if(d){ /* merge */ } }
+              if(tbl==='transaksi'){ const d=await SupaDB.getTransaksi({outletId: currentOutlet, limit:50}); if(d){ /* merge — realtime transaksi sudah di-push via insert, reload laporan jika perlu */ renderLaporan(); } }
+              if(tbl==='shifts'){ renderShift(); }
+              if(tbl==='pembelian'){ renderPembelian(); renderStok(); }
+              if(tbl==='opname'){ renderOpname(); }
+              if(tbl==='outlets'){ const d=await supa.from('outlets').select('*'); if(d.data){ outlets=d.data; localStorage.setItem(LS.outlet, JSON.stringify(outlets)); renderOutlet(); } }
+              if(tbl==='users'){ const d=await supa.from('users').select('*'); if(d.data){ /* map to local users format if needed */ renderUsers(); } }
+              if(tbl==='kategori'){ const d=await supa.from('kategori').select('nama'); if(d.data){ kategoriList=d.data.map(r=>r.nama); localStorage.setItem(LS.kategori, JSON.stringify(kategoriList)); renderKategoriSelects(); } }
             }catch(e){ console.warn('[realtime reload]', e.message); }
           }, 800);
         }).subscribe();

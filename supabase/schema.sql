@@ -13,9 +13,10 @@ create table if not exists outlets (
   created_at timestamptz default now()
 );
 insert into outlets(id,nama) values
-  ('OUT001','Aliya Herba'),
   ('OUT002','CBM Gamping')
 on conflict (id) do update set nama=excluded.nama;
+-- hapus outlet lama jika ada
+delete from outlets where id='OUT001';
 
 -- 2. Users — hierarki Owner -> Spv -> Kasir (per toko)
 create table if not exists users (

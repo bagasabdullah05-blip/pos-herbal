@@ -1,17 +1,14 @@
 const LS={produk:'herbal_produk',member:'herbal_member',trx:'herbal_trx',sup:'herbal_sup',beli:'herbal_beli',op:'herbal_op',promo:'herbal_promo',outlet:'herbal_outlet',users:'herbal_users',curOut:'herbal_curOut',curUser:'herbal_curUser',nota:'herbal_nota',curNota:'herbal_curNota',shift:'herbal_shift',mLevel:'herbal_mLevel',kategori:'herbal_kategori',ppn:'herbal_ppn',struk:'herbal_struk',qris:'herbal_qris'};
 let produk=[],member=[],trx=[],supplier=[],pembelian=[],opname=[],promo=[],outlets=[],users=[],notas=[],shifts=[],memberLevels=[],kategoriList=[],cart=[],pay='Tunai';
-let currentOutlet='OUT001', currentUser=null, currentNotaId=null;
+let currentOutlet='OUT002', currentUser=null, currentNotaId=null;
 window.getCurrentUser=()=>currentUser;
 let printerDevice=null, printerPort=null;
 const DEFAULT_OUTLETS=[
-  {id:'OUT001',nama:'Aliya Herba'},
   {id:'OUT002',nama:'CBM Gamping'}
 ];
 const DEFAULT_USERS=[
   {id:'U001',nama:'Owner',username:'admin',password:'admin',role:'Owner'},
-  {id:'U002',nama:'SPV Aliya',username:'spvaliya',password:'spv',role:'Spv',outletIds:['OUT001']},
   {id:'U003',nama:'SPV Gamping',username:'spvgamping',password:'spv',role:'Spv',outletIds:['OUT002']},
-  {id:'U004',nama:'Kasir Aliya',username:'kasiraliya',password:'kasir',role:'Kasir',outletId:'OUT001'},
   {id:'U005',nama:'Kasir Gamping',username:'kasirgamping',password:'kasir',role:'Kasir',outletId:'OUT002'}
 ];
 const DEFAULT_LEVELS=[
@@ -1718,8 +1715,8 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Enter' && e.ctrlKey){e.preventDefault();bayarSekarang()}
 });
 setInterval(()=>{ const el=document.getElementById('jam'); if(el) el.textContent=new Date().toLocaleString('id-ID');},1000);
-const THEMES={OUT001:{accent:'#16a34a',soft:'#dcfce7',line:'#bbf7d0',accent2:'#14b8a6'},OUT002:{accent:'#dc2626',soft:'#fee2e2',line:'#fecaca',accent2:'#f97316'}};
-function applyTheme(outletId){ const t=THEMES[outletId]||THEMES.OUT001; const st=document.documentElement.style; st.setProperty('--cbm-accent',t.accent); st.setProperty('--cbm-accent-soft',t.soft); st.setProperty('--cbm-accent-line',t.line); st.setProperty('--cbm-accent2',t.accent2); }
+const THEMES={OUT002:{accent:'#dc2626',soft:'#fee2e2',line:'#fecaca',accent2:'#f97316'}};
+function applyTheme(outletId){ const t=THEMES[outletId]||THEMES.OUT002; const st=document.documentElement.style; st.setProperty('--cbm-accent',t.accent); st.setProperty('--cbm-accent-soft',t.soft); st.setProperty('--cbm-accent-line',t.line); st.setProperty('--cbm-accent2',t.accent2); }
 function renderOutlet(){
   applyTheme(currentOutlet);
   const mo=myOutlets();

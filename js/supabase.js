@@ -84,15 +84,15 @@ const SupaDB = {
     if(error) throw error;
     return data.map(r=>({
       id:r.id, sku:r.sku, barcode:r.barcode, nama:r.nama, kategori:r.kategori,
-      harga:r.harga, hpp:r.hpp, stok:r.stok, stokByOutlet: r.stok_by_outlet||{[r.outlet_id||'OUT001']: r.stok}, exp:r.exp, batch:r.batch, bpom:r.bpom, supplier:r.supplier_id, gambar:r.gambar, outlet:r.outlet_id
+      harga:r.harga, hpp:r.hpp, stok:r.stok, stokByOutlet: r.stok_by_outlet||{[r.outlet_id||'OUT002']: r.stok}, exp:r.exp, batch:r.batch, bpom:r.bpom, supplier:r.supplier_id, gambar:r.gambar, outlet:r.outlet_id
     }));
   },
   async upsertProduk(p){
     const s = getSupa(); if(!s) return;
-    const stokBy = p.stokByOutlet || {[p.outlet||currentOutlet||'OUT001']: p.stok||0};
+    const stokBy = p.stokByOutlet || {[p.outlet||currentOutlet||'OUT002']: p.stok||0};
     const { error } = await s.from('produk').upsert({
       id:p.id, sku:p.sku, barcode:p.barcode, nama:p.nama,
-      kategori:p.kategori, harga:p.harga, hpp:p.hpp||0, stok: p.stok||0, stok_by_outlet: stokBy, exp:p.exp||null, batch:p.batch||null, bpom:p.bpom||null, supplier_id:p.supplier||null, outlet_id:p.outlet||currentOutlet||'OUT001'
+      kategori:p.kategori, harga:p.harga, hpp:p.hpp||0, stok: p.stok||0, stok_by_outlet: stokBy, exp:p.exp||null, batch:p.batch||null, bpom:p.bpom||null, supplier_id:p.supplier||null, outlet_id:p.outlet||currentOutlet||'OUT002'
     }, {onConflict:'id'});
     if(error) throw error;
   },
@@ -146,7 +146,7 @@ const SupaDB = {
   async insertTransaksi(t){
     const s = getSupa(); if(!s) return;
     const { error } = await s.from('transaksi').insert({
-      id:t.id, waktu:t.waktu||new Date().toISOString(), outlet_id:t.outlet||t.outlet_id||'OUT001',
+      id:t.id, waktu:t.waktu||new Date().toISOString(), outlet_id:t.outlet||t.outlet_id||'OUT002',
       user_id:t.user_id||(window.getCurrentUser?window.getCurrentUser():null)?.id||null, member_id:t.member||t.member_id||null,
       cart: t.cart||[], subtotal:t.subtotal||t.sub||0, diskon:t.diskon||t.disc||0, ppn:t.ppn||0, total:t.total||0, bayar:t.bayar||t.pay||'Tunai', status:t.status||'paid'
     });

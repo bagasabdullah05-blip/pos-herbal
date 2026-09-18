@@ -26,7 +26,7 @@ Login (multi-toko): pilih toko di layar masuk.
 - SPV Gamping `spvgamping/spv` - hanya CBM Gamping
 - Kasir Aliya `kasiraliya/kasir` - hanya Aliya Herba
 - Kasir Gamping `kasirgamping/kasir` - hanya CBM Gamping
-- Toko: **Aliya Herba** (OUT001), **CBM Gamping** (OUT002)
+- Toko: **CBM Gamping** (OUT002)
 
 ## Warna CBM
 --bg #f6f7f9 --card #ffffff --border #e6e8eb

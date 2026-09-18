@@ -1,0 +1,11 @@
+<!DOCTYPE html><script>
+try{
+  localStorage.clear();
+  sessionStorage.clear();
+  indexedDB.deleteDatabase('pos_outlet');
+  if('caches' in window) caches.keys().then(k=>k.forEach(x=>caches.delete(x)));
+  if('serviceWorker' in navigator) navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister()));
+}finally{
+  location.href='/';
+}
+</script>

@@ -49,13 +49,13 @@ async function hybridLoadData(){
   // MODE: Pure Supabase — semua load dari cloud, local diabaikan
   if(supa){
     try{
-      // load semua tabel utama dari Supabase
+      // PURE SUPABASE: langsung ambil semua dari cloud, tanpa baca localStorage dulu
       const [pCloud, mCloud, supCloud, promoCloud, trxCloud, beliCloud, opCloud, shiftCloud, outletCloud, userCloud, katCloud] = await Promise.all([
-        window.SupaDB.getProduk().catch(()=>null),
-        window.SupaDB.getMember().catch(()=>null),
-        window.SupaDB.getSupplier().catch(()=>null),
+        window.SupaDB.getProduk().catch(e=>{ console.warn('pCloud',e.message); return null; }),
+        window.SupaDB.getMember().catch(e=>{ console.warn('mCloud',e.message); return null; }),
+        window.SupaDB.getSupplier().catch(e=>{ console.warn('supCloud',e.message); return null; }),
         window.SupaDB.getPromo ? window.SupaDB.getPromo().catch(()=>null) : Promise.resolve(null),
-        window.SupaDB.getTransaksi ? window.SupaDB.getTransaksi({outletId: currentOutlet, limit:200}).catch(()=>null) : Promise.resolve(null),
+        window.SupaDB.getTransaksi ? window.SupaDB.getTransaksi({limit:200}).catch(()=>null) : Promise.resolve(null),
         supa.from('pembelian').select('*').order('waktu',{ascending:false}).limit(200).then(r=> r.error? null : r.data.map(x=>({waktu:x.waktu, outlet:x.outlet_id, supplier:x.supplier_id, produk:x.produk_id, qty:x.qty, hpp:x.hpp, batch:x.batch, exp:x.exp, ket:x.ket}))).catch(()=>null),
         supa.from('opname').select('*').order('waktu',{ascending:false}).limit(200).then(r=> r.error? null : r.data.map(x=>({waktu:x.waktu, outlet:x.outlet_id, produk:x.produk_id, sistem:x.sistem, fisik:x.fisik, selisih:x.selisih}))).catch(()=>null),
         supa.from('shifts').select('*').order('buka_at',{ascending:false}).limit(100).then(r=> r.error? null : r.data.map(s=>({id:s.id, outlet:s.outlet_id, user:s.user_id, userNama:s.user_id, buka:s.buka_at, tutup:s.tutup_at, saldoAwal:s.modal_awal, omzet:0, transaksi:0, status:s.status==='buka'?'buka':'tutup'}))).catch(()=>null),
@@ -63,25 +63,19 @@ async function hybridLoadData(){
         supa.from('users').select('*').then(r=> r.error? null : r.data.map(u=>({id:u.id, nama:u.nama, username:u.username||u.nama, password:u.password||u.pin, role:u.role==='Admin'?'Owner':u.role, outletId:u.outlet_id, outletIds:u.outlet_ids||(u.outlet_id?[u.outlet_id]:[])}))).catch(()=>null),
         supa.from('kategori').select('nama').then(r=> r.error? null : r.data.map(x=>x.nama)).catch(()=>null)
       ]);
+      // tetap panggil _origLoadData untuk inisialisasi struktur dasar (LS keys, default), tapi langsung timpa dengan cloud
       await _origLoadData();
-      // PURE: pakai cloud sebagai sumber utama untuk semua
-      if(pCloud !== null){
-        if(pCloud.length===0 && produk.length>0){ setTimeout(async()=>{ for(const p of produk) await window.SupaDB.upsertProduk(p).catch(()=>{}); }, 500); }
-        else { console.log('[sync] Supabase-only produk', pCloud.length); produk = pCloud || []; }
-      }
-      if(mCloud !== null){
-        if(mCloud.length===0 && member.length>2){ setTimeout(async()=>{ for(const m of member) await window.SupaDB.upsertMember(m).catch(()=>{}); }, 500); } else { member = mCloud || []; }
-      }
-      if(supCloud !== null){
-        if(supCloud.length===0 && supplier.length>0){ setTimeout(async()=>{ for(const s of supplier) await window.SupaDB.upsertSupplier(s).catch(()=>{}); }, 500); } else { supplier = supCloud || []; }
-      }
-      if(promoCloud !== null && promoCloud.length) promo = promoCloud;
-      if(trxCloud !== null){ trx = trxCloud.map(t=>({id:t.id, waktu:t.waktu, outlet:t.outlet_id, user_id:t.user_id, member:t.member_id, cart:t.cart, subtotal:t.subtotal, diskon:t.diskon, ppn:t.ppn, total:t.total, pay:t.bayar, bayar:t.total, kembalian:0, status:t.status, laba:0})); }
-      if(beliCloud !== null && beliCloud.length) pembelian = beliCloud;
-      if(opCloud !== null && opCloud.length) opname = opCloud;
-      if(shiftCloud !== null && shiftCloud.length) shifts = shiftCloud;
-      if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); }
-      if(userCloud !== null && userCloud.length){ /* merge users, jangan timpa Owner lokal jika cloud belum ada */ const map=new Map(userCloud.map(u=>[u.id,u])); users.forEach(u=>{ if(!map.has(u.id)) map.set(u.id,u); }); if(userCloud.length) users=Array.from(map.values()); }
+      // PURE: timpa semua dengan cloud (jika cloud null = fetch gagal, jangan timpa)
+      if(pCloud !== null){ console.log('[sync] PURE produk', pCloud.length); produk = pCloud; }
+      if(mCloud !== null){ console.log('[sync] PURE member', mCloud.length); member = mCloud; }
+      if(supCloud !== null){ console.log('[sync] PURE supplier', supCloud.length); supplier = supCloud; }
+      if(promoCloud !== null) promo = promoCloud || [];
+      if(trxCloud !== null){ trx = trxCloud.map(t=>({id:t.id, waktu:t.waktu, outlet:t.outlet_id, user_id:t.user_id, member:t.member_id, cart:t.cart, subtotal:t.subtotal, diskon:t.diskon, ppn:t.ppn, total:t.total, pay:t.bayar, bayar:t.total, kembalian:0, status:t.status, laba:0})); console.log('[sync] PURE trx', trx.length); }
+      if(beliCloud !== null) pembelian = beliCloud || [];
+      if(opCloud !== null) opname = opCloud || [];
+      if(shiftCloud !== null) shifts = shiftCloud || [];
+      if(outletCloud !== null && outletCloud.length){ outlets = outletCloud.map(o=>({id:o.id, nama:o.nama})); console.log('[sync] PURE outlets', outlets.length); }
+      if(userCloud !== null && userCloud.length){ users = userCloud; console.log('[sync] PURE users', users.length); }
       if(katCloud !== null && katCloud.length){ kategoriList = katCloud; }
       try{ localStorage.setItem(LS.produk, JSON.stringify(produk)); localStorage.setItem(LS.member, JSON.stringify(member)); localStorage.setItem(LS.sup, JSON.stringify(supplier)); localStorage.setItem(LS.promo, JSON.stringify(promo)); localStorage.setItem(LS.trx, JSON.stringify(trx)); localStorage.setItem(LS.beli, JSON.stringify(pembelian)); localStorage.setItem(LS.op, JSON.stringify(opname)); }catch{}
       if(window.getDexie()){

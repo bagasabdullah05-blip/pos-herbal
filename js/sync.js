@@ -32,11 +32,18 @@ async function hybridLoadData(){
   const pSupa = window.initSupabase ? window.initSupabase() : Promise.resolve(null);
   await Promise.allSettled([pDex, pSupa]);
 
-  // PURE: hapus total localStorage tiap load — 100% Supabase
+  // PURE: paksa hard reset v54 sekali — hapus total local biar 100% Supabase
   try{
-    Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); });
-    try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
-    if(new URLSearchParams(location.search).has('hard_reset')) history.replaceState(null,'',location.pathname);
+    const needV54 = !localStorage.getItem('hard_reset_v54');
+    const urlHasReset = new URLSearchParams(location.search).has('hard_reset');
+    if(needV54 || urlHasReset){
+      Object.keys(localStorage).forEach(k=>{ if(k.startsWith('herbal_')) localStorage.removeItem(k); });
+      try{ indexedDB.deleteDatabase('pos_outlet'); }catch{}
+      try{ if('caches' in window){ caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))); } }catch{}
+      localStorage.setItem('hard_reset_v54','1');
+      if(urlHasReset) history.replaceState(null,'',location.pathname);
+      console.log('[hard reset v54] local dibersihkan');
+    }
   }catch{}
   // PURE: hapus semua cache lokal sebelum load, biar 100% Supabase
   try{
